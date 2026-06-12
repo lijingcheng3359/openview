@@ -1,0 +1,26 @@
+id,name,email,role,department,location,start_date,salary,status,performance_score,notes
+1,Alice Zhang,alice@example.com,Senior Engineer,Platform,Shanghai,2023-01-15,35000,Active,4.8,"Tech lead, mentors 3 junior engineers"
+2,Bob Li,bob@example.com,UI Designer,Product,Beijing,2023-03-22,28000,Active,4.2,UI/UX specialist
+3,Carol Wang,carol@example.com,Product Manager,Product,Hangzhou,2022-11-01,32000,On Leave,4.5,Parental leave until 2026-09
+4,Dave Chen,dave@example.com,Junior Engineer,Platform,Shanghai,2024-06-10,25000,Active,3.9,New hire from campus recruitment
+5,Eva Liu,eva@example.com,Data Analyst,Data,Shenzhen,2021-07-20,30000,Active,4.6,Python & SQL expert
+6,Frank Wu,frank@example.com,DevOps Engineer,Infrastructure,Shanghai,2022-04-15,33000,Active,4.1,Manages CI/CD pipelines
+7,Grace Zhao,grace@example.com,QA Lead,Quality,Beijing,2020-09-01,31000,Active,4.7,"Automation testing, Selenium"
+8,Henry Huang,henry@example.com,Frontend Developer,Platform,Guangzhou,2023-08-14,27000,Active,3.8,React & Vue.js
+9,Iris Xu,iris@example.com,Backend Developer,Platform,Shanghai,2022-01-10,29000,Resigned,4.0,Left for startup
+10,Jack Sun,jack@example.com,Engineering Manager,Platform,Shanghai,2019-03-05,45000,Active,4.9,"Manages team of 12, reports to VP"
+11,Kelly Lin,kelly@example.com,Security Engineer,Infrastructure,Beijing,2023-05-20,34000,Active,4.3,AppSec & penetration testing
+12,Leo Ma,leo@example.com,Mobile Developer,Mobile,Shenzhen,2021-11-15,31000,Active,4.4,iOS & Android (Flutter)
+13,Mia Jiang,mia@example.com,Technical Writer,Product,Remote,2024-01-08,22000,Active,4.1,Documentation & API references
+14,Nick Yang,nick@example.com,ML Engineer,Data,Hangzhou,2022-06-30,38000,Active,4.6,"NLP models, LLM fine-tuning"
+15,Olivia Pan,olivia@example.com,SRE,Infrastructure,Shanghai,2020-12-01,36000,Active,4.8,On-call rotation lead
+16,Peter Gao,peter@example.com,Intern,Platform,Shanghai,2026-06-01,8000,Active,,"Summer intern, Tsinghua University"
+17,Queenie Luo,queenie@example.com,HR Business Partner,HR,Beijing,2021-08-15,26000,Active,4.0,Tech recruiting focus
+18,Ryan Zhu,ryan@example.com,Solutions Architect,Sales Engineering,Shanghai,2023-10-01,40000,Active,4.5,Enterprise customers
+19,Sophie He,sophie@example.com,UX Researcher,Product,Hangzhou,2024-03-18,25000,Active,3.7,User interviews & usability testing
+20,Tom Feng,tom@example.com,Database Admin,Infrastructure,Shenzhen,2019-06-22,35000,Active,4.2,"PostgreSQL, Redis, MongoDB"
+21,,missing@example.com,Unknown,,,,0,Inactive,,Edge case: missing name and fields
+22,Edge Case,edge@example.com,"Title, with comma",Department,"""Quoted City""",2025-12-31,99999,Active,5.0,"Tests: commas, ""quotes"", special chars 中文 🎉"
+23,Zero Values,zero@example.com,Tester,QA,Nowhere,2026-01-01,0,Active,0.0,Salary and score are zero
+24,Long Name Person With Many Words In Their Full Name,longname@really-long-email-domain-name-for-testing.example.com,Senior Principal Staff Distinguished Fellow Engineer,Cross-Functional Organizational Excellence,San Francisco Bay Area California United States,2020-01-01,999999,Active,4.99,Tests horizontal overflow with very long field values that extend beyond typical column widths
+25,日本語テスト,jp@example.com,エンジニア,開発部,東京,2024-04-01,350000,Active,4.3,Unicode test with Japanese characters

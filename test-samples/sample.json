@@ -1,0 +1,188 @@
+{
+  "project": "OpenView",
+  "version": "0.2.0",
+  "description": "Lightweight file viewer for macOS",
+  "author": {
+    "name": "lijingcheng3359",
+    "email": "lijingcheng3359@gmail.com",
+    "github": "https://github.com/lijingcheng3359"
+  },
+  "config": {
+    "window": {
+      "width": 1200,
+      "height": 800,
+      "minWidth": 800,
+      "minHeight": 600,
+      "resizable": true,
+      "fullscreen": false,
+      "titleBarStyle": "Overlay"
+    },
+    "editor": {
+      "fontSize": 14,
+      "tabSize": 2,
+      "wordWrap": true,
+      "lineNumbers": true,
+      "minimap": false
+    },
+    "theme": "auto",
+    "recentProjectsLimit": 10,
+    "searchDebounceMs": 150,
+    "maxSearchResults": 50
+  },
+  "features": [
+    {
+      "name": "Markdown Viewer",
+      "enabled": true,
+      "extensions": ["md", "markdown"],
+      "options": {
+        "gfm": true,
+        "tables": true,
+        "strikethrough": true,
+        "tasklists": true,
+        "hoverToExpand": true
+      }
+    },
+    {
+      "name": "CSV Viewer",
+      "enabled": true,
+      "extensions": ["csv", "tsv"],
+      "options": {
+        "sorting": true,
+        "filtering": true,
+        "search": true,
+        "virtualScroll": true,
+        "maxPreviewRows": null
+      }
+    },
+    {
+      "name": "JSON Viewer",
+      "enabled": true,
+      "extensions": ["json", "jsonl"],
+      "options": {
+        "syntaxHighlight": true,
+        "collapsible": true,
+        "defaultExpandDepth": 2,
+        "maxRenderNodes": 10000
+      }
+    },
+    {
+      "name": "Mermaid Diagrams",
+      "enabled": true,
+      "extensions": ["mmd", "mermaid"],
+      "options": {
+        "panZoom": true,
+        "errorRecovery": true
+      }
+    },
+    {
+      "name": "Git Integration",
+      "enabled": true,
+      "extensions": [],
+      "options": {
+        "diffViewModes": ["unified", "side-by-side"],
+        "commitLogLimit": 50,
+        "detectOnFolderOpen": true
+      }
+    }
+  ],
+  "techStack": {
+    "framework": "Tauri 2",
+    "frontend": "Solid.js",
+    "language": {
+      "backend": "Rust",
+      "frontend": "TypeScript"
+    },
+    "dependencies": {
+      "pulldown-cmark": "0.12",
+      "git2": "0.19",
+      "csv": "1.3",
+      "codemirror": "6.x",
+      "mermaid": "11.x",
+      "diff2html": "3.x"
+    }
+  },
+  "performance": {
+    "binarySize": "7 MB",
+    "memoryUsage": "73 MB",
+    "usesSystemWebKit": true,
+    "simdAcceleration": true,
+    "coldStartTime": "0.3s"
+  },
+  "testData": {
+    "nullValue": null,
+    "booleanTrue": true,
+    "booleanFalse": false,
+    "integer": 42,
+    "negativeNumber": -17,
+    "float": 3.14159265,
+    "scientificNotation": 6.022e23,
+    "emptyString": "",
+    "unicodeString": "你好世界 🚀",
+    "longString": "This is a very long string that should test how the JSON viewer handles text that extends beyond the typical viewport width and might need horizontal scrolling or wrapping in the tree view.",
+    "escapedChars": "Line1\nLine2\tTabbed\t\"Quoted\"\\Backslash",
+    "emptyObject": {},
+    "emptyArray": [],
+    "nestedDeep": {
+      "level1": {
+        "level2": {
+          "level3": {
+            "level4": {
+              "level5": {
+                "value": "deeply nested"
+              }
+            }
+          }
+        }
+      }
+    },
+    "largeArray": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
+    "mixedArray": [
+      "string",
+      42,
+      true,
+      false,
+      null,
+      { "key": "value" },
+      [1, 2, 3]
+    ],
+    "specialNumbers": {
+      "zero": 0,
+      "maxSafe": 9007199254740991,
+      "minSafe": -9007199254740991,
+      "verySmall": 0.000001
+    },
+    "urls": [
+      "https://github.com/lijingcheng3359/openview",
+      "https://tauri.app/",
+      "https://www.solidjs.com/",
+      "file:///Users/test/project/README.md"
+    ]
+  },
+  "changelog": [
+    {
+      "version": "0.2.0",
+      "date": "2026-06-13",
+      "changes": [
+        "Add welcome screen with recent projects",
+        "Add JSON viewer with syntax highlighting",
+        "Fix bundle identifier",
+        "Add issue templates"
+      ]
+    },
+    {
+      "version": "0.1.1",
+      "date": "2026-06-13",
+      "changes": [
+        "Fix window dragging",
+        "Fix markdown table rendering"
+      ]
+    },
+    {
+      "version": "0.1.0",
+      "date": "2026-06-12",
+      "changes": [
+        "Initial release"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,165 @@
+.json-viewer {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+}
+
+.json-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-sidebar);
+  flex-shrink: 0;
+}
+
+.json-toolbar-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-right: auto;
+}
+
+.json-toolbar-btn {
+  padding: 3px 10px;
+  font-size: 12px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.json-toolbar-btn:hover {
+  background: var(--bg-hover);
+}
+
+.json-tree {
+  flex: 1;
+  overflow: auto;
+  padding: 12px 16px;
+  font-family: "SF Mono", Menlo, Monaco, "Courier New", monospace;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.json-node {
+  white-space: nowrap;
+}
+
+.json-line {
+  display: inline-flex;
+  align-items: baseline;
+}
+
+.json-expandable {
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+.json-expandable:hover {
+  background: var(--bg-hover);
+}
+
+.json-arrow {
+  display: inline-block;
+  width: 16px;
+  font-size: 8px;
+  color: var(--text-secondary);
+  transition: transform 0.15s;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.json-arrow.expanded {
+  transform: rotate(90deg);
+}
+
+.json-key {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.json-colon {
+  color: var(--text-secondary);
+}
+
+.json-bracket {
+  color: var(--text-secondary);
+}
+
+.json-comma {
+  color: var(--text-secondary);
+}
+
+.json-ellipsis {
+  color: var(--text-secondary);
+  margin: 0 2px;
+}
+
+.json-count {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-left: 6px;
+  font-style: italic;
+}
+
+.json-string {
+  color: #0a7e3f;
+}
+
+.json-number {
+  color: #0550ae;
+}
+
+.json-boolean {
+  color: #cf6b00;
+}
+
+.json-null {
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+@media (prefers-color-scheme: dark) {
+  .json-string {
+    color: #7ee787;
+  }
+
+  .json-number {
+    color: #79c0ff;
+  }
+
+  .json-boolean {
+    color: #ffa657;
+  }
+
+  .json-null {
+    color: #8b949e;
+  }
+}
+
+.json-error {
+  padding: 16px;
+}
+
+.json-error-label {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--diff-del);
+  color: #f85149;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.json-error-message {
+  font-family: "SF Mono", Menlo, monospace;
+  font-size: 13px;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+  margin-top: 8px;
+}

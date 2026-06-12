@@ -62,7 +62,9 @@ const MarkdownPreview: Component<{ content: string; tabId: string }> = (props) =
     if (!containerRef) return;
     const rect = containerRef.getBoundingClientRect();
     const x = e.clientX - rect.left;
-    setHoverSide(x < rect.width / 2 ? "left" : "right");
+    const ratio = x / rect.width;
+    if (ratio < 0.05) setHoverSide("left");
+    else if (ratio > 0.95) setHoverSide("right");
   }
 
   return (

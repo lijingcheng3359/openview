@@ -1,6 +1,6 @@
 import { createSignal, createRoot } from "solid-js";
 
-export type ViewMode = "markdown" | "csv" | "mermaid" | "plaintext" | "git-log" | "git-diff";
+export type ViewMode = "markdown" | "csv" | "mermaid" | "json" | "image" | "plaintext" | "git-log" | "git-diff";
 
 export interface RecentProject {
   path: string;
@@ -53,6 +53,18 @@ function createAppStore() {
       case "mmd":
       case "mermaid":
         return "mermaid";
+      case "json":
+      case "jsonl":
+        return "json";
+      case "png":
+      case "jpg":
+      case "jpeg":
+      case "gif":
+      case "webp":
+      case "svg":
+      case "bmp":
+      case "ico":
+        return "image";
       default:
         return "plaintext";
     }

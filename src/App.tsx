@@ -1,5 +1,5 @@
 import { Component, Show, Switch, Match, For, onMount } from "solid-js";
-import { invoke } from "@tauri-apps/api/core";
+import { invoke, convertFileSrc } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import Sidebar from "./components/Sidebar/Sidebar";
 import MarkdownPreview from "./components/MarkdownPreview/MarkdownPreview";
@@ -7,6 +7,7 @@ import CsvViewer from "./components/CsvViewer/CsvViewer";
 import MermaidViewer from "./components/MermaidViewer/MermaidViewer";
 import GitLog from "./components/GitLog/GitLog";
 import GitDiff from "./components/GitDiff/GitDiff";
+import JsonViewer from "./components/JsonViewer/JsonViewer";
 import { appStore, addRecentProject, getRecentProjects } from "./stores/app";
 import "diff2html/bundles/css/diff2html.min.css";
 
@@ -96,11 +97,19 @@ const App: Component = () => {
                 <Match when={tab()?.mode === "mermaid"}>
                   <MermaidViewer content={tab()!.content ?? ""} tabId={tab()!.id} />
                 </Match>
+                <Match when={tab()?.mode === "json"}>
+                  <JsonViewer content={tab()!.content ?? ""} />
+                </Match>
                 <Match when={tab()?.mode === "git-log"}>
                   <GitLog />
                 </Match>
                 <Match when={tab()?.mode === "git-diff"}>
                   <GitDiff commitHash={tab()!.content ?? ""} />
+                </Match>
+                <Match when={tab()?.mode === "image"}>
+                  <div class="image-viewer">
+                    <img src={convertFileSrc(tab()!.path)} alt={tab()!.name} />
+                  </div>
                 </Match>
                 <Match when={tab()?.mode === "plaintext"}>
                   <div class="plaintext-viewer">
