@@ -49,7 +49,7 @@ const App: Component = () => {
   return (
     <div class="app">
       <Show when={appStore.rootPath()} fallback={
-        <div class="empty-state" style={{ width: "100%" }}>
+        <div class="empty-state" data-tauri-drag-region style={{ width: "100%" }}>
           <div style={{ "text-align": "center" }}>
             <h2 style={{ "margin-bottom": "8px", color: "var(--text-primary)" }}>OpenView</h2>
             <p>Open a folder to get started</p>
@@ -79,10 +79,10 @@ const App: Component = () => {
         />
         <div class="main-content">
           <Show when={tab()} fallback={
-            <div class="empty-state">Select a file to view</div>
+            <div class="empty-state" data-tauri-drag-region>Select a file to view</div>
           }>
             <Show when={tab()?.mode !== "git-diff" && tab()?.mode !== "git-log"}>
-              <div class="content-header">
+              <div class="content-header" data-tauri-drag-region>
                 <span class="content-filename">{tab()!.name}</span>
               </div>
             </Show>

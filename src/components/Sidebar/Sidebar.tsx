@@ -165,7 +165,7 @@ const Sidebar: Component<{
 
   return (
     <div class="sidebar" style={{ width: `${appStore.sidebarWidth()}px` }}>
-      <div class="sidebar-brand">
+      <div class="sidebar-brand" data-tauri-drag-region>
         <span class="brand-name">OpenView</span>
       </div>
 
