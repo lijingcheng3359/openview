@@ -1,0 +1,52 @@
+.mermaid-editor {
+  display: flex;
+  height: 100%;
+  width: 100%;
+}
+
+.mermaid-editor .editor-pane {
+  flex: 1;
+  overflow: hidden;
+  border-right: 1px solid var(--border);
+}
+
+.mermaid-editor .editor-pane .cm-editor {
+  height: 100%;
+}
+
+.diagram-pane {
+  flex: 1;
+  overflow: hidden;
+  cursor: grab;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-preview);
+  position: relative;
+}
+
+.diagram-pane:active {
+  cursor: grabbing;
+}
+
+.diagram-container {
+  transition: transform 0.05s ease-out;
+}
+
+.diagram-container svg {
+  max-width: none;
+}
+
+.mermaid-error {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  right: 12px;
+  padding: 8px 12px;
+  background: var(--diff-del);
+  border: 1px solid #f85149;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #f85149;
+  z-index: 10;
+}
