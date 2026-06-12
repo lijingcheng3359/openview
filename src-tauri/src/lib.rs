@@ -1,6 +1,6 @@
 mod commands;
 
-use commands::{csv_cmd, file, git, markdown};
+use commands::{csv_cmd, file, git, markdown, sqlite_cmd};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -26,6 +26,8 @@ pub fn run() {
             git::git_detect,
             git::git_log,
             git::git_diff,
+            sqlite_cmd::sqlite_list_tables,
+            sqlite_cmd::sqlite_query_table,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

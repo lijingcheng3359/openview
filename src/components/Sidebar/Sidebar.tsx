@@ -18,7 +18,7 @@ const FileTreeItem: Component<{ entry: FileEntry; depth: number }> = (props) => 
   async function toggle() {
     if (!props.entry.is_dir) {
       const mode = appStore.detectMode(props.entry.name);
-      if (mode === "image") {
+      if (mode === "image" || mode === "sqlite") {
         appStore.openFile(props.entry.path, props.entry.name, "");
         return;
       }
@@ -147,7 +147,7 @@ const Sidebar: Component<{
 
   async function openSearchResult(entry: FileEntry) {
     const mode = appStore.detectMode(entry.name);
-    if (mode === "image") {
+    if (mode === "image" || mode === "sqlite") {
       appStore.openFile(entry.path, entry.name, "");
       return;
     }
