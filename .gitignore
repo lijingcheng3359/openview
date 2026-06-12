@@ -16,8 +16,9 @@ src-tauri/target/
 # Claude Code
 .claude/
 
-# OpenSpec planning artifacts
+# Planning artifacts
 openspec/
+SPEC.md
 
 # Logs
 *.log
