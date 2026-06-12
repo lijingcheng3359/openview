@@ -1,4 +1,4 @@
-import { Component, Show, Switch, Match, onMount } from "solid-js";
+import { Component, Show, Switch, Match, For, onMount } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import Sidebar from "./components/Sidebar/Sidebar";
@@ -7,7 +7,7 @@ import CsvViewer from "./components/CsvViewer/CsvViewer";
 import MermaidViewer from "./components/MermaidViewer/MermaidViewer";
 import GitLog from "./components/GitLog/GitLog";
 import GitDiff from "./components/GitDiff/GitDiff";
-import { appStore, addRecentProject } from "./stores/app";
+import { appStore, addRecentProject, getRecentProjects } from "./stores/app";
 import "diff2html/bundles/css/diff2html.min.css";
 
 const App: Component = () => {
@@ -49,25 +49,24 @@ const App: Component = () => {
   return (
     <div class="app">
       <Show when={appStore.rootPath()} fallback={
-        <div class="empty-state" data-tauri-drag-region style={{ width: "100%" }}>
-          <div style={{ "text-align": "center" }}>
-            <h2 style={{ "margin-bottom": "8px", color: "var(--text-primary)" }}>OpenView</h2>
-            <p>Open a folder to get started</p>
-            <button
-              onClick={openFolder}
-              style={{
-                "margin-top": "16px",
-                padding: "8px 24px",
-                background: "var(--accent)",
-                color: "white",
-                border: "none",
-                "border-radius": "6px",
-                cursor: "pointer",
-                "font-size": "14px",
-              }}
-            >
-              Open Folder
-            </button>
+        <div class="welcome-screen" data-tauri-drag-region>
+          <div class="welcome-content">
+            <h2 class="welcome-title">OpenView</h2>
+            <p class="welcome-subtitle">Open a folder to get started</p>
+            <button class="welcome-btn" onClick={openFolder}>Open Folder</button>
+            <Show when={getRecentProjects().length > 0}>
+              <div class="welcome-recent">
+                <p class="welcome-recent-label">Recent Projects</p>
+                <For each={getRecentProjects()}>
+                  {(project) => (
+                    <div class="welcome-recent-item" onClick={() => switchToProject(project.path)}>
+                      <span class="welcome-recent-name">{project.name}</span>
+                      <span class="welcome-recent-path">{project.path}</span>
+                    </div>
+                  )}
+                </For>
+              </div>
+            </Show>
           </div>
         </div>
       }>

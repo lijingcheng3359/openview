@@ -116,3 +116,85 @@ html, body, #root {
   color: var(--text-secondary);
   font-size: 16px;
 }
+
+.welcome-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+}
+
+.welcome-content {
+  text-align: center;
+  max-width: 360px;
+  width: 100%;
+}
+
+.welcome-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+
+.welcome-subtitle {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.welcome-btn {
+  margin-top: 16px;
+  padding: 8px 24px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.welcome-btn:hover {
+  background: var(--accent-hover);
+}
+
+.welcome-recent {
+  margin-top: 28px;
+  text-align: left;
+}
+
+.welcome-recent-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+  padding-left: 8px;
+}
+
+.welcome-recent-item {
+  display: flex;
+  flex-direction: column;
+  padding: 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.welcome-recent-item:hover {
+  background: var(--bg-hover);
+}
+
+.welcome-recent-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.welcome-recent-path {
+  font-size: 11px;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
