@@ -1,6 +1,6 @@
 import { createSignal, createRoot } from "solid-js";
 
-export type ViewMode = "markdown" | "csv" | "mermaid" | "json" | "image" | "sqlite" | "plaintext" | "git-log" | "git-diff";
+export type ViewMode = "markdown" | "csv" | "mermaid" | "json" | "image" | "sqlite" | "code" | "plaintext" | "git-log" | "git-diff";
 
 export interface RecentProject {
   path: string;
@@ -42,6 +42,10 @@ function createAppStore() {
   const [sidebarWidth, setSidebarWidth] = createSignal(250);
 
   function detectMode(filename: string): ViewMode {
+    const base = filename.toLowerCase();
+    if (base === "makefile" || base === "dockerfile" || base === "cmakelists.txt" || base === "gemfile" || base === "rakefile") {
+      return "code";
+    }
     const ext = filename.split(".").pop()?.toLowerCase();
     switch (ext) {
       case "md":
@@ -69,6 +73,77 @@ function createAppStore() {
       case "bmp":
       case "ico":
         return "image";
+      case "py":
+      case "js":
+      case "jsx":
+      case "ts":
+      case "tsx":
+      case "go":
+      case "rs":
+      case "java":
+      case "c":
+      case "cpp":
+      case "cc":
+      case "cxx":
+      case "h":
+      case "hpp":
+      case "hxx":
+      case "cs":
+      case "rb":
+      case "php":
+      case "sh":
+      case "bash":
+      case "zsh":
+      case "fish":
+      case "css":
+      case "scss":
+      case "less":
+      case "html":
+      case "htm":
+      case "xml":
+      case "yaml":
+      case "yml":
+      case "toml":
+      case "ini":
+      case "conf":
+      case "cfg":
+      case "properties":
+      case "sql":
+      case "swift":
+      case "kt":
+      case "kts":
+      case "scala":
+      case "lua":
+      case "r":
+      case "pl":
+      case "pm":
+      case "ex":
+      case "exs":
+      case "erl":
+      case "hs":
+      case "ml":
+      case "clj":
+      case "dart":
+      case "vue":
+      case "svelte":
+      case "zig":
+      case "nim":
+      case "v":
+      case "d":
+      case "m":
+      case "mm":
+      case "gradle":
+      case "cmake":
+      case "make":
+      case "dockerfile":
+      case "tf":
+      case "hcl":
+      case "proto":
+      case "graphql":
+      case "gql":
+      case "wasm":
+      case "wat":
+        return "code";
       default:
         return "plaintext";
     }

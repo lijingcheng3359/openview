@@ -9,6 +9,7 @@ import GitLog from "./components/GitLog/GitLog";
 import GitDiff from "./components/GitDiff/GitDiff";
 import JsonViewer from "./components/JsonViewer/JsonViewer";
 import SqliteViewer from "./components/SqliteViewer/SqliteViewer";
+import CodeViewer from "./components/CodeViewer/CodeViewer";
 import { appStore, addRecentProject, getRecentProjects } from "./stores/app";
 import "diff2html/bundles/css/diff2html.min.css";
 
@@ -114,6 +115,9 @@ const App: Component = () => {
                 </Match>
                 <Match when={tab()?.mode === "sqlite"}>
                   <SqliteViewer path={tab()!.path} />
+                </Match>
+                <Match when={tab()?.mode === "code"}>
+                  <CodeViewer content={tab()!.content ?? ""} filename={tab()!.name} />
                 </Match>
                 <Match when={tab()?.mode === "plaintext"}>
                   <div class="plaintext-viewer">

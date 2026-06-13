@@ -1,0 +1,8 @@
+.code-viewer {
+  height: 100%;
+  width: 100%;
+}
+
+.code-viewer .cm-editor {
+  height: 100%;
+}
