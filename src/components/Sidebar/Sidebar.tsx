@@ -1,5 +1,6 @@
 import { Component, createSignal, createEffect, For, Show, onCleanup } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
+import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { appStore, getRecentProjects, RecentProject } from "../../stores/app";
 import "./Sidebar.css";
 
@@ -10,10 +11,17 @@ interface FileEntry {
   extension: string | null;
 }
 
-const FileTreeItem: Component<{ entry: FileEntry; depth: number }> = (props) => {
+const FileTreeItem: Component<{ entry: FileEntry; depth: number; refreshKey: number }> = (props) => {
   const [expanded, setExpanded] = createSignal(false);
   const [children, setChildren] = createSignal<FileEntry[]>([]);
   const [loaded, setLoaded] = createSignal(false);
+
+  createEffect(() => {
+    const _key = props.refreshKey;
+    if (loaded() && expanded() && props.entry.is_dir) {
+      invoke<FileEntry[]>("read_dir", { path: props.entry.path }).then(setChildren);
+    }
+  });
 
   async function toggle() {
     if (!props.entry.is_dir) {
@@ -55,7 +63,7 @@ const FileTreeItem: Component<{ entry: FileEntry; depth: number }> = (props) => 
       </div>
       <Show when={expanded()}>
         <For each={children()}>
-          {(child) => <FileTreeItem entry={child} depth={props.depth + 1} />}
+          {(child) => <FileTreeItem entry={child} depth={props.depth + 1} refreshKey={props.refreshKey} />}
         </For>
       </Show>
     </div>
@@ -86,11 +94,14 @@ const Sidebar: Component<{
   const [searchResults, setSearchResults] = createSignal<FileEntry[]>([]);
   const [searching, setSearching] = createSignal(false);
   const [dropdownOpen, setDropdownOpen] = createSignal(false);
+  const [refreshKey, setRefreshKey] = createSignal(0);
   let debounceTimer: ReturnType<typeof setTimeout> | undefined;
   let dropdownRef: HTMLDivElement | undefined;
+  let unlistenFs: UnlistenFn | undefined;
 
   onCleanup(() => {
     if (debounceTimer) clearTimeout(debounceTimer);
+    unlistenFs?.();
   });
 
   function handleClickOutside(e: MouseEvent) {
@@ -111,11 +122,18 @@ const Sidebar: Component<{
     document.removeEventListener("mousedown", handleClickOutside);
   });
 
-  createEffect(() => {
+  createEffect(async () => {
     const path = appStore.rootPath();
-    if (path) {
+    if (!path) return;
+
+    invoke<FileEntry[]>("read_dir", { path }).then(setEntries);
+    invoke("watch_path", { path });
+
+    unlistenFs?.();
+    unlistenFs = await listen<string>("fs-changed", () => {
       invoke<FileEntry[]>("read_dir", { path }).then(setEntries);
-    }
+      setRefreshKey((k) => k + 1);
+    });
   });
 
   function onSearchInput(value: string) {
@@ -222,7 +240,7 @@ const Sidebar: Component<{
       <div class="sidebar-tree">
         <Show when={isSearching()} fallback={
           <For each={entries()}>
-            {(entry) => <FileTreeItem entry={entry} depth={0} />}
+            {(entry) => <FileTreeItem entry={entry} depth={0} refreshKey={refreshKey()} />}
           </For>
         }>
           <Show when={searching()}>

@@ -1,10 +1,13 @@
 mod commands;
+mod watcher;
 
 use commands::{csv_cmd, file, git, markdown, sqlite_cmd};
+use std::sync::{Arc, Mutex};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .manage(Arc::new(Mutex::new(watcher::WatcherState::new())))
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .setup(|app| {
@@ -28,6 +31,7 @@ pub fn run() {
             git::git_diff,
             sqlite_cmd::sqlite_list_tables,
             sqlite_cmd::sqlite_query_table,
+            watcher::watch_path,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
