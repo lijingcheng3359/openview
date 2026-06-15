@@ -198,10 +198,26 @@ const Sidebar: Component<{
       </div>
 
       <div class="project-switcher" ref={dropdownRef}>
-        <div class="project-current" onClick={() => setDropdownOpen(!dropdownOpen())}>
-          <span class="project-folder-icon">📁</span>
-          <span class="project-name">{projectName(appStore.rootPath())}</span>
-          <span class="project-chevron">{dropdownOpen() ? "▾" : "▸"}</span>
+        <div class="project-header">
+          <div class="project-current" onClick={() => setDropdownOpen(!dropdownOpen())}>
+            <span class="project-folder-icon">📁</span>
+            <span class="project-name">{projectName(appStore.rootPath())}</span>
+            <span class="project-chevron">{dropdownOpen() ? "▾" : "▸"}</span>
+          </div>
+          <Show when={appStore.isGitRepo()}>
+            <div class="project-actions">
+              <button class="project-action-btn" onClick={props.onOpenWorkingChanges} title="Working Changes">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                  <path d="M11.93 8.5a4.002 4.002 0 0 1-7.86 0H.75a.75.75 0 0 1 0-1.5h3.32a4.002 4.002 0 0 1 7.86 0h3.32a.75.75 0 0 1 0 1.5Zm-1.43-.75a2.5 2.5 0 1 0-5 0 2.5 2.5 0 0 0 5 0Z"/>
+                </svg>
+              </button>
+              <button class="project-action-btn" onClick={props.onOpenGitLog} title="Commit History">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                  <path d="M1.643 3.143.427 1.927A.25.25 0 0 1 .6 1.5h3.8a.25.25 0 0 1 .177.427l-1.216 1.216a.25.25 0 0 1-.354 0ZM3.75 2.5a.75.75 0 0 1 .75.75v5.94l1.72-1.72a.749.749 0 1 1 1.06 1.06l-3 3a.749.749 0 0 1-1.06 0l-3-3a.749.749 0 1 1 1.06-1.06l1.72 1.72V3.25a.75.75 0 0 1 .75-.75ZM8.25 13h6a.75.75 0 0 1 0 1.5h-6a.75.75 0 0 1 0-1.5ZM8.25 9h6a.75.75 0 0 1 0 1.5h-6a.75.75 0 0 1 0-1.5ZM8.25 5h6a.75.75 0 0 1 0 1.5h-6a.75.75 0 0 1 0-1.5ZM8.25 1h6a.75.75 0 0 1 0 1.5h-6a.75.75 0 0 1 0-1.5Z"/>
+                </svg>
+              </button>
+            </div>
+          </Show>
         </div>
         <Show when={dropdownOpen()}>
           <div class="project-dropdown">
@@ -265,18 +281,6 @@ const Sidebar: Component<{
         </Show>
       </div>
 
-      <Show when={appStore.isGitRepo()}>
-        <div class="sidebar-git">
-          <div class="git-row" onClick={props.onOpenWorkingChanges}>
-            <span class="git-icon">◇</span>
-            <span class="tree-name">Working Changes</span>
-          </div>
-          <div class="git-row" onClick={props.onOpenGitLog}>
-            <span class="git-icon">⏱</span>
-            <span class="tree-name">Commit History</span>
-          </div>
-        </div>
-      </Show>
     </div>
   );
 };
