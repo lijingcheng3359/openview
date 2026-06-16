@@ -2,6 +2,7 @@ import { Component, createSignal, createEffect, For, Show, onCleanup } from "sol
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { appStore, getRecentProjects, RecentProject } from "../../stores/app";
+import { getFileIcon } from "./FileIcons";
 import "./Sidebar.css";
 
 interface FileEntry {
@@ -75,15 +76,10 @@ const FileTreeItem: Component<{ entry: FileEntry; depth: number; refreshKey: num
         style={{ "padding-left": `${props.depth * 16 + 8}px` }}
         onClick={toggle}
       >
-        <Show when={props.entry.is_dir}>
-          <span class="tree-arrow" classList={{ expanded: expanded() }}>
-            ▶
-          </span>
-        </Show>
-        <Show when={!props.entry.is_dir}>
-          <span class="tree-icon">📄</span>
-        </Show>
-        <span class={`tree-name ${getFileColorClass(props.entry.name)}`}>{props.entry.name}</span>
+        <span class={`tree-icon ${props.entry.is_dir ? "file-folder" : getFileColorClass(props.entry.name)}`}>
+          {getFileIcon(props.entry.name, props.entry.is_dir, expanded())}
+        </span>
+        <span class="tree-name">{props.entry.name}</span>
       </div>
       <Show when={expanded()}>
         <For each={children()}>
