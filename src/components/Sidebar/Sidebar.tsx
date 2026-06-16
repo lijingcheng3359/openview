@@ -30,6 +30,14 @@ const EXT_COLOR_MAP: Record<string, string> = {
   webp: "file-image", bmp: "file-image", ico: "file-image",
 };
 
+function entriesEqual(a: FileEntry[], b: FileEntry[]): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    if (a[i].name !== b[i].name || a[i].path !== b[i].path || a[i].is_dir !== b[i].is_dir) return false;
+  }
+  return true;
+}
+
 function getFileColorClass(filename: string): string {
   const ext = filename.split(".").pop()?.toLowerCase();
   if (!ext || ext === filename.toLowerCase()) return "";
@@ -52,7 +60,11 @@ const FileTreeItem: Component<{ entry: FileEntry; depth: number; refreshKey: num
   createEffect(() => {
     const _key = props.refreshKey;
     if (loaded() && expanded() && props.entry.is_dir) {
-      invoke<FileEntry[]>("read_dir", { path: props.entry.path }).then(setChildren);
+      invoke<FileEntry[]>("read_dir", { path: props.entry.path }).then((newChildren) => {
+        if (!entriesEqual(children(), newChildren)) {
+          setChildren(newChildren);
+        }
+      });
     }
   });
 
@@ -171,8 +183,12 @@ const Sidebar: Component<{
 
     unlistenFs?.();
     unlistenFs = await listen<string>("fs-changed", () => {
-      invoke<FileEntry[]>("read_dir", { path }).then(setEntries);
-      setRefreshKey((k) => k + 1);
+      invoke<FileEntry[]>("read_dir", { path }).then((newEntries) => {
+        if (!entriesEqual(entries(), newEntries)) {
+          setEntries(newEntries);
+          setRefreshKey((k) => k + 1);
+        }
+      });
     });
   });
 
