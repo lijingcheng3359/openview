@@ -268,3 +268,32 @@
   text-overflow: ellipsis;
 }
 
+/* File type colors — light mode */
+.file-ts { color: #3178c6; }
+.file-js { color: #e5a634; }
+.file-markup { color: #e44d26; }
+.file-style { color: #a855f7; }
+.file-config { color: #6d9a37; }
+.file-md { color: #519aba; }
+.file-rust { color: #de5228; }
+.file-go { color: #00add8; }
+.file-python { color: #3776ab; }
+.file-shell { color: #4eaa25; }
+.file-data { color: #e5a634; }
+.file-image { color: #a855f7; }
+
+@media (prefers-color-scheme: dark) {
+  .file-ts { color: #519aba; }
+  .file-js { color: #cbcb41; }
+  .file-markup { color: #e06c75; }
+  .file-style { color: #c678dd; }
+  .file-config { color: #98c379; }
+  .file-md { color: #519aba; }
+  .file-rust { color: #dea584; }
+  .file-go { color: #7fd5ea; }
+  .file-python { color: #5f9fd4; }
+  .file-shell { color: #89e051; }
+  .file-data { color: #e5c07b; }
+  .file-image { color: #d19a66; }
+}
+

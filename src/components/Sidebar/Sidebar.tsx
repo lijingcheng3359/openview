@@ -11,6 +11,30 @@ interface FileEntry {
   extension: string | null;
 }
 
+const EXT_COLOR_MAP: Record<string, string> = {
+  ts: "file-ts", tsx: "file-ts",
+  js: "file-js", jsx: "file-js", mjs: "file-js", cjs: "file-js",
+  html: "file-markup", htm: "file-markup", xml: "file-markup", svg: "file-markup",
+  css: "file-style", scss: "file-style", less: "file-style",
+  json: "file-config", jsonl: "file-config", yaml: "file-config", yml: "file-config",
+  toml: "file-config", ini: "file-config", conf: "file-config", cfg: "file-config",
+  properties: "file-config", env: "file-config",
+  md: "file-md", markdown: "file-md", mdx: "file-md",
+  rs: "file-rust",
+  go: "file-go",
+  py: "file-python",
+  sh: "file-shell", bash: "file-shell", zsh: "file-shell", fish: "file-shell",
+  csv: "file-data", tsv: "file-data", sql: "file-data", sqlite: "file-data", db: "file-data",
+  png: "file-image", jpg: "file-image", jpeg: "file-image", gif: "file-image",
+  webp: "file-image", bmp: "file-image", ico: "file-image",
+};
+
+function getFileColorClass(filename: string): string {
+  const ext = filename.split(".").pop()?.toLowerCase();
+  if (!ext || ext === filename.toLowerCase()) return "";
+  return EXT_COLOR_MAP[ext] || "";
+}
+
 const FileTreeItem: Component<{ entry: FileEntry; depth: number; refreshKey: number }> = (props) => {
   const [expanded, setExpanded] = createSignal(false);
   const [children, setChildren] = createSignal<FileEntry[]>([]);
@@ -59,7 +83,7 @@ const FileTreeItem: Component<{ entry: FileEntry; depth: number; refreshKey: num
         <Show when={!props.entry.is_dir}>
           <span class="tree-icon">📄</span>
         </Show>
-        <span class="tree-name">{props.entry.name}</span>
+        <span class={`tree-name ${getFileColorClass(props.entry.name)}`}>{props.entry.name}</span>
       </div>
       <Show when={expanded()}>
         <For each={children()}>
@@ -270,7 +294,7 @@ const Sidebar: Component<{
               <div class="search-result-row" onClick={() => openSearchResult(entry)}>
                 <span class="tree-icon">📄</span>
                 <div class="search-result-text">
-                  <span class="search-result-name">{entry.name}</span>
+                  <span class={`search-result-name ${getFileColorClass(entry.name)}`}>{entry.name}</span>
                   <span class="search-result-path">
                     {relativePath(entry.path, appStore.rootPath() ?? "")}
                   </span>
