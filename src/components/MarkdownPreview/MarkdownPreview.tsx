@@ -78,10 +78,10 @@ const MarkdownPreview: Component<{ content: string; tabId: string }> = (props) =
       onMouseMove={handleMouseMove}
       onMouseLeave={() => setHoverSide(null)}
     >
-      <div class="editor-pane" ref={editorRef} />
       <div class="preview-pane" ref={previewRef}>
         <div class="markdown-body" innerHTML={html()} />
       </div>
+      <div class="editor-pane" ref={editorRef} />
     </div>
   );
 };

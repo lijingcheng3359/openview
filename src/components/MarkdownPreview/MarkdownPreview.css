@@ -7,7 +7,7 @@
 .editor-pane {
   flex: 1;
   overflow: hidden;
-  border-right: 1px solid var(--border);
+  border-left: 1px solid var(--border);
   transition: flex 0.3s ease;
 }
 
@@ -23,20 +23,20 @@
   transition: flex 0.3s ease;
 }
 
-.markdown-editor.hover-left > .editor-pane {
+.markdown-editor.hover-left > .preview-pane {
   flex: 4;
 }
-.markdown-editor.hover-left > .preview-pane {
+.markdown-editor.hover-left > .editor-pane {
   flex: 0.01;
-  padding: 0;
   overflow: hidden;
 }
 
-.markdown-editor.hover-right > .preview-pane {
+.markdown-editor.hover-right > .editor-pane {
   flex: 4;
 }
-.markdown-editor.hover-right > .editor-pane {
+.markdown-editor.hover-right > .preview-pane {
   flex: 0.01;
+  padding: 0;
   overflow: hidden;
 }
 
