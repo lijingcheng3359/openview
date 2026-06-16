@@ -78,8 +78,8 @@
 }
 
 .project-folder-icon {
-  font-size: 13px;
   flex-shrink: 0;
+  color: var(--text-secondary);
 }
 
 .project-name {
@@ -90,12 +90,6 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   flex: 1;
-}
-
-.project-chevron {
-  font-size: 10px;
-  color: var(--text-secondary);
-  flex-shrink: 0;
 }
 
 .project-dropdown {
