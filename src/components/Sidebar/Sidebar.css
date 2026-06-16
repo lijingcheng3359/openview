@@ -220,6 +220,37 @@
 .tree-name {
   overflow: hidden;
   text-overflow: ellipsis;
+  flex: 1;
+}
+
+.tree-copy-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: none;
+  background: none;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  opacity: 0;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.tree-row:hover .tree-copy-btn {
+  opacity: 1;
+}
+
+.tree-copy-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.tree-copy-btn.copied {
+  opacity: 1;
+  color: #34c759;
 }
 
 .search-status {
