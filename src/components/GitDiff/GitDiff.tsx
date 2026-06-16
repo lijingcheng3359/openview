@@ -1,5 +1,6 @@
-import { Component, createSignal, createEffect, onMount, Show, For } from "solid-js";
+import { Component, createSignal, createEffect, onMount, onCleanup, Show, For } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { html as diffHtml } from "diff2html";
 import { appStore } from "../../stores/app";
 import "./GitDiff.css";
@@ -38,17 +39,23 @@ const GitDiff: Component<{ commitHash: string }> = (props) => {
   const [renderedHtml, setRenderedHtml] = createSignal("");
   const [selectedIdx, setSelectedIdx] = createSignal(0);
 
-  onMount(async () => {
+  async function loadDiff() {
     const path = appStore.rootPath();
     if (!path) return;
-
     const hash = props.commitHash === "working" ? undefined : props.commitHash;
-    const result = await invoke<GitDiffResult>("git_diff", {
-      path,
-      commitHash: hash,
-    });
+    const result = await invoke<GitDiffResult>("git_diff", { path, commitHash: hash });
     setDiffResult(result);
+  }
+
+  onMount(() => {
+    loadDiff();
+    if (props.commitHash === "working") {
+      listen("fs-changed", loadDiff).then((fn) => unlisten = fn);
+    }
   });
+
+  let unlisten: (() => void) | undefined;
+  onCleanup(() => unlisten?.());
 
   createEffect(() => {
     const result = diffResult();

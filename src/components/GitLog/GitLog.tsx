@@ -1,5 +1,6 @@
-import { Component, createSignal, For, Show, onMount } from "solid-js";
+import { Component, createSignal, For, Show, onMount, onCleanup } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { appStore } from "../../stores/app";
 import "./GitLog.css";
 
@@ -19,7 +20,26 @@ const GitLog: Component = () => {
   const [selectedHash, setSelectedHash] = createSignal<string | null>(null);
   let offset = 0;
 
-  onMount(() => loadMore());
+  let unlisten: (() => void) | undefined;
+
+  async function reload() {
+    const path = appStore.rootPath();
+    if (!path) return;
+    offset = 0;
+    setCommits([]);
+    setLoading(true);
+    const batch = await invoke<GitCommit[]>("git_log", { path, offset, limit: 50 });
+    setCommits(batch);
+    offset = batch.length;
+    setLoading(false);
+  }
+
+  onMount(() => {
+    loadMore();
+    listen("fs-changed", reload).then((fn) => unlisten = fn);
+  });
+
+  onCleanup(() => unlisten?.());
 
   async function loadMore() {
     const path = appStore.rootPath();
