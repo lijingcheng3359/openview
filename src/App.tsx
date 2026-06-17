@@ -30,6 +30,13 @@ const App: Component = () => {
     addRecentProject(path);
     const isGit = await invoke<boolean>("git_detect", { path });
     appStore.setIsGitRepo(isGit);
+    if (isGit) {
+      const id = "git-diff-working";
+      appStore.setTabs([
+        { id, name: "Working Changes", path: "git://working", mode: "git-diff", content: "working" },
+      ]);
+      appStore.setActiveTabId(id);
+    }
   }
 
   function openGitLog() {
