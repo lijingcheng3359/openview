@@ -97,6 +97,8 @@ pub fn git_diff(path: String, commit_hash: Option<String>) -> Result<GitDiffResu
         let head = repo.head().map_err(|e| e.to_string())?;
         let tree = head.peel_to_tree().map_err(|e| e.to_string())?;
         let mut opts = DiffOptions::new();
+        opts.include_untracked(true);
+        opts.recurse_untracked_dirs(true);
         repo.diff_tree_to_workdir_with_index(Some(&tree), Some(&mut opts))
             .map_err(|e| e.to_string())?
     };
@@ -117,6 +119,7 @@ pub fn git_diff(path: String, commit_hash: Option<String>) -> Result<GitDiffResu
             git2::Delta::Deleted => "deleted",
             git2::Delta::Modified => "modified",
             git2::Delta::Renamed => "renamed",
+            git2::Delta::Untracked => "untracked",
             _ => "other",
         };
 
