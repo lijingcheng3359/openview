@@ -20,6 +20,7 @@ function statusLabel(s: string): { letter: string; cls: string } {
     case "added": return { letter: "A", cls: "status-added" };
     case "deleted": return { letter: "D", cls: "status-deleted" };
     case "renamed": return { letter: "R", cls: "status-renamed" };
+    case "untracked": return { letter: "U", cls: "status-untracked" };
     default: return { letter: "M", cls: "status-modified" };
   }
 }
@@ -67,6 +68,22 @@ const GitDiff: Component<{ commitHash: string }> = (props) => {
     }
     const file = result.files[idx];
     if (!file?.patch) {
+      if (file?.status === "untracked") {
+        invoke<string>("read_file", { path: `${appStore.rootPath()}/${file.path}` })
+          .then((content) => {
+            const lines = content.split("\n");
+            const numbered = lines.map((l, i) => `+${l}`).join("\n");
+            const fakePatch = `--- /dev/null\n+++ b/${file.path}\n@@ -0,0 +1,${lines.length} @@\n${numbered}`;
+            const h = diffHtml(fakePatch, {
+              drawFileList: false,
+              matching: "lines",
+              outputFormat: mode === "unified" ? "line-by-line" : "side-by-side",
+            });
+            setRenderedHtml(h);
+          })
+          .catch(() => setRenderedHtml("<div class='diff-empty'>Unable to read file</div>"));
+        return;
+      }
       setRenderedHtml("<div class='diff-empty'>No changes</div>");
       return;
     }

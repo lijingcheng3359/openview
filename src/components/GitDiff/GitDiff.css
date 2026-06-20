@@ -98,6 +98,10 @@
   color: #8b949e;
 }
 
+.status-untracked {
+  color: #3fb950;
+}
+
 .diff-file-info {
   display: flex;
   flex-direction: column;

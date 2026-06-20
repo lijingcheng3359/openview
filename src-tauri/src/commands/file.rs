@@ -23,9 +23,6 @@ pub fn read_dir(path: String) -> Result<Vec<FileEntry>, String> {
             let entry = entry.ok()?;
             let metadata = entry.metadata().ok()?;
             let name = entry.file_name().to_string_lossy().to_string();
-            if name.starts_with('.') {
-                return None;
-            }
             Some(FileEntry {
                 name,
                 path: entry.path().to_string_lossy().to_string(),
@@ -71,9 +68,6 @@ fn search_recursive(dir: &Path, query: &str, results: &mut Vec<FileEntry>, limit
     let mut dirs = Vec::new();
     for entry in entries.flatten() {
         let name = entry.file_name().to_string_lossy().to_string();
-        if name.starts_with('.') {
-            continue;
-        }
         let metadata = match entry.metadata() {
             Ok(m) => m,
             Err(_) => continue,
