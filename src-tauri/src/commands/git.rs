@@ -30,6 +30,13 @@ pub fn git_detect(path: String) -> bool {
 }
 
 #[tauri::command]
+pub fn git_branch(path: String) -> Result<String, String> {
+    let repo = Repository::discover(&path).map_err(|e| e.to_string())?;
+    let head = repo.head().map_err(|e| e.to_string())?;
+    Ok(head.shorthand().unwrap_or("HEAD").to_string())
+}
+
+#[tauri::command]
 pub fn git_log(path: String, offset: Option<usize>, limit: Option<usize>) -> Result<Vec<GitCommit>, String> {
     let repo = Repository::discover(&path).map_err(|e| e.to_string())?;
     let mut revwalk = repo.revwalk().map_err(|e| e.to_string())?;
