@@ -156,11 +156,12 @@
 
 .sidebar-search-wrap {
   padding: 4px 8px 6px;
+  position: relative;
 }
 
 .sidebar-search {
   width: 100%;
-  padding: 5px 8px;
+  padding: 5px 24px 5px 8px;
   border: 1px solid var(--border);
   border-radius: 5px;
   background: var(--bg-primary);
@@ -175,6 +176,28 @@
 
 .sidebar-search::placeholder {
   color: var(--text-secondary);
+}
+
+.sidebar-search-clear {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: none;
+  background: none;
+  border-radius: 3px;
+  cursor: pointer;
+  color: var(--text-secondary);
+}
+
+.sidebar-search-clear:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
 }
 
 .sidebar-tree {
