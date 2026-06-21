@@ -1,4 +1,4 @@
-import { Component, onMount, onCleanup } from "solid-js";
+import { Component, onMount, onCleanup, createEffect } from "solid-js";
 import { EditorView, basicSetup } from "codemirror";
 import { EditorState } from "@codemirror/state";
 import { languages } from "@codemirror/language-data";
@@ -117,6 +117,15 @@ const CodeViewer: Component<{ content: string; filename: string }> = (props) => 
     });
 
     view = new EditorView({ state, parent: containerRef! });
+  });
+
+  createEffect(() => {
+    const newContent = props.content;
+    if (!view) return;
+    const current = view.state.doc.toString();
+    if (newContent !== current) {
+      view.dispatch({ changes: { from: 0, to: current.length, insert: newContent } });
+    }
   });
 
   onCleanup(() => view?.destroy());

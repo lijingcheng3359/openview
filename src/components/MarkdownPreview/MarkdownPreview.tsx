@@ -50,6 +50,16 @@ const MarkdownPreview: Component<{ content: string; tabId: string }> = (props) =
     });
   });
 
+  createEffect(() => {
+    const newContent = props.content;
+    if (!view) return;
+    const current = view.state.doc.toString();
+    if (newContent !== current) {
+      view.dispatch({ changes: { from: 0, to: current.length, insert: newContent } });
+      updatePreview(newContent);
+    }
+  });
+
   onCleanup(() => {
     view?.destroy();
     clearTimeout(debounceTimer);
