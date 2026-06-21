@@ -217,6 +217,11 @@
   flex: 1;
 }
 
+.file-hidden {
+  opacity: 0.5;
+  font-style: italic;
+}
+
 .tree-copy-btn {
   display: flex;
   align-items: center;

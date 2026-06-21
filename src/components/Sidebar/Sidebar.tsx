@@ -99,7 +99,7 @@ const FileTreeItem: Component<{ entry: FileEntry; depth: number; refreshKey: num
         <span class={`tree-icon ${props.entry.is_dir ? "file-folder" : getFileColorClass(props.entry.name)}`}>
           {getFileIcon(props.entry.name, props.entry.is_dir, expanded())}
         </span>
-        <span class="tree-name">{props.entry.name}</span>
+        <span class="tree-name" classList={{ "file-hidden": props.entry.name.startsWith(".") }}>{props.entry.name}</span>
         <button class="tree-copy-btn" classList={{ copied: copied() }} onClick={copyPath} title="Copy path">
           <Show when={copied()} fallback={
             <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
@@ -327,7 +327,7 @@ const Sidebar: Component<{
               <div class="search-result-row" onClick={() => openSearchResult(entry)}>
                 <span class="tree-icon">📄</span>
                 <div class="search-result-text">
-                  <span class={`search-result-name ${getFileColorClass(entry.name)}`}>{entry.name}</span>
+                  <span class={`search-result-name ${getFileColorClass(entry.name)}`} classList={{ "file-hidden": entry.name.startsWith(".") }}>{entry.name}</span>
                   <span class="search-result-path">
                     {relativePath(entry.path, appStore.rootPath() ?? "")}
                   </span>
