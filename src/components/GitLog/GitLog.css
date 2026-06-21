@@ -51,6 +51,7 @@
 
 .commit-meta {
   display: flex;
+  justify-content: flex-end;
   gap: 12px;
   font-size: 11px;
   color: var(--text-secondary);
