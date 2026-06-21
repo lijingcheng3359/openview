@@ -1,5 +1,6 @@
-import { Component, Show, Switch, Match, For, onMount } from "solid-js";
+import { Component, Show, Switch, Match, For, onMount, onCleanup } from "solid-js";
 import { invoke, convertFileSrc } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-dialog";
 import Sidebar from "./components/Sidebar/Sidebar";
 import MarkdownPreview from "./components/MarkdownPreview/MarkdownPreview";
@@ -13,8 +14,25 @@ import CodeViewer from "./components/CodeViewer/CodeViewer";
 import { appStore, addRecentProject, getRecentProjects } from "./stores/app";
 import "diff2html/bundles/css/diff2html.min.css";
 
+const SKIP_RELOAD_MODES = new Set(["git-log", "git-diff", "image", "sqlite"]);
+
 const App: Component = () => {
-  onMount(async () => {});
+  let unlistenFs: (() => void) | undefined;
+
+  onMount(async () => {
+    unlistenFs = await listen("fs-changed", async () => {
+      const active = appStore.activeTab();
+      if (!active || SKIP_RELOAD_MODES.has(active.mode)) return;
+      try {
+        const content = await invoke<string>("read_file", { path: active.path });
+        if (content !== active.content) {
+          appStore.updateTabContent(active.id, content);
+        }
+      } catch {}
+    });
+  });
+
+  onCleanup(() => unlistenFs?.());
 
   async function openFolder() {
     const selected = await open({ directory: true, multiple: false });
