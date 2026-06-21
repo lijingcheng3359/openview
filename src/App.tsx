@@ -124,7 +124,7 @@ const App: Component = () => {
             <div class="content-area">
               <Switch>
                 <Match when={tab()?.mode === "markdown"}>
-                  <MarkdownPreview content={tab()!.content ?? ""} tabId={tab()!.id} />
+                  <MarkdownPreview content={tab()!.content ?? ""} tabId={tab()!.id} filePath={tab()!.path} />
                 </Match>
                 <Match when={tab()?.mode === "csv"}>
                   <CsvViewer path={tab()!.path} />

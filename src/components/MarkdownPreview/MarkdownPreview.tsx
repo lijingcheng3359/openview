@@ -7,7 +7,7 @@ import { EditorState } from "@codemirror/state";
 import { appStore } from "../../stores/app";
 import "./MarkdownPreview.css";
 
-const MarkdownPreview: Component<{ content: string; tabId: string }> = (props) => {
+const MarkdownPreview: Component<{ content: string; tabId: string; filePath: string }> = (props) => {
   let editorRef: HTMLDivElement | undefined;
   let previewRef: HTMLDivElement | undefined;
   let view: EditorView | undefined;
@@ -15,8 +15,14 @@ const MarkdownPreview: Component<{ content: string; tabId: string }> = (props) =
 
   const [html, setHtml] = createSignal("");
 
+  function getBaseDir(filePath: string): string {
+    const lastSlash = filePath.lastIndexOf("/");
+    return lastSlash >= 0 ? filePath.substring(0, lastSlash) : "";
+  }
+
   async function updatePreview(content: string) {
-    const result = await invoke<string>("parse_markdown", { content });
+    const basePath = getBaseDir(props.filePath);
+    const result = await invoke<string>("parse_markdown", { content, basePath });
     setHtml(result);
   }
 
