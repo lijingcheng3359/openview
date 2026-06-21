@@ -20,17 +20,6 @@
   font-size: 13px;
 }
 
-.log-branch {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  color: var(--text-secondary);
-  background: var(--bg-hover);
-  padding: 2px 8px;
-  border-radius: 4px;
-}
-
 .log-info {
   margin-left: auto;
   font-size: 12px;
@@ -40,15 +29,6 @@
 .log-list {
   flex: 1;
   overflow-y: auto;
-}
-
-.log-statusbar {
-  display: flex;
-  align-items: center;
-  padding: 4px 16px;
-  border-top: 1px solid var(--border);
-  background: var(--bg-sidebar);
-  flex-shrink: 0;
 }
 
 .commit-row {
