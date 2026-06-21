@@ -42,6 +42,15 @@
   overflow-y: auto;
 }
 
+.log-statusbar {
+  display: flex;
+  align-items: center;
+  padding: 4px 16px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-sidebar);
+  flex-shrink: 0;
+}
+
 .commit-row {
   padding: 8px 16px;
   border-bottom: 1px solid var(--border);
