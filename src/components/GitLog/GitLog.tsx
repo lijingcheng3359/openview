@@ -105,14 +105,18 @@ const GitLog: Component = () => {
             <div class="commit-main">
               <span class="commit-hash">{commit.short_hash}</span>
               <span class="commit-message">{commit.message.split("\n")[0]}</span>
-              <For each={commit.refs}>
-                {(ref) => <span class="commit-ref">{ref}</span>}
-              </For>
+              <span class="commit-meta">
+                <span class="commit-author">{commit.author}</span>
+                <span class="commit-date">{formatDate(commit.date)}</span>
+              </span>
             </div>
-            <div class="commit-meta">
-              <span class="commit-author">{commit.author}</span>
-              <span class="commit-date">{formatDate(commit.date)}</span>
-            </div>
+            <Show when={commit.refs.length > 0}>
+              <div class="commit-refs">
+                <For each={commit.refs}>
+                  {(ref) => <span class="commit-ref">{ref}</span>}
+                </For>
+              </div>
+            </Show>
           </div>
         )}
       </For>

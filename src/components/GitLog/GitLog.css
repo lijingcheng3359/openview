@@ -87,6 +87,12 @@
   flex: 1;
 }
 
+.commit-refs {
+  display: flex;
+  gap: 4px;
+  margin-top: 3px;
+}
+
 .commit-ref {
   font-size: 11px;
   padding: 1px 6px;
@@ -98,10 +104,11 @@
 
 .commit-meta {
   display: flex;
-  justify-content: flex-end;
   gap: 12px;
   font-size: 11px;
   color: var(--text-secondary);
+  margin-left: auto;
+  flex-shrink: 0;
 }
 
 .commit-loading {
