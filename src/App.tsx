@@ -40,17 +40,25 @@ const App: Component = () => {
   }
 
   function openGitLog() {
-    appStore.setTabs([
-      { id: "git-log", name: "Git Log", path: "git://log", mode: "git-log", content: "" },
-    ]);
+    const existing = appStore.tabs().find((t) => t.id === "git-log");
+    if (!existing) {
+      appStore.setTabs((prev) => [
+        ...prev,
+        { id: "git-log", name: "Git Log", path: "git://log", mode: "git-log", content: "" },
+      ]);
+    }
     appStore.setActiveTabId("git-log");
   }
 
   function openWorkingChanges() {
     const id = "git-diff-working";
-    appStore.setTabs([
-      { id, name: "Working Changes", path: "git://working", mode: "git-diff", content: "working" },
-    ]);
+    const existing = appStore.tabs().find((t) => t.id === id);
+    if (!existing) {
+      appStore.setTabs((prev) => [
+        ...prev,
+        { id, name: "Working Changes", path: "git://working", mode: "git-diff", content: "working" },
+      ]);
+    }
     appStore.setActiveTabId(id);
   }
 
