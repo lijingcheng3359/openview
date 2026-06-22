@@ -77,6 +77,11 @@
   color: var(--text-primary);
 }
 
+.project-action-btn.active {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
 .project-folder-icon {
   flex-shrink: 0;
   color: var(--text-secondary);
