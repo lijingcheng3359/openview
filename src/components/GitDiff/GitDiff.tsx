@@ -118,7 +118,7 @@ const GitDiff: Component<{ commitHash: string }> = (props) => {
     <div class="git-diff">
       <div class="diff-toolbar" data-tauri-drag-region>
         <span class="diff-title">
-          {props.commitHash === "working" ? "Working Changes" : `Commit ${props.commitHash.slice(0, 7)}`}
+          {props.commitHash === "working" ? "Working Changes" : `Commit ${props.commitHash.slice(0, 8)}`}
         </span>
         <Show when={props.commitHash === "working" && branch()}>
           <span class="diff-branch">

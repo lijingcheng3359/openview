@@ -15,9 +15,38 @@
   flex-shrink: 0;
 }
 
-.log-title {
+.log-branch {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.log-branch-label {
   font-weight: 600;
-  font-size: 13px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.log-branch-select {
+  font-size: 12px;
+  padding: 3px 6px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
+  max-width: 180px;
+  text-overflow: ellipsis;
+}
+
+.log-find {
+  flex: 1;
+  max-width: 280px;
+  font-size: 12px;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
 }
 
 .log-info {
@@ -26,13 +55,36 @@
   color: var(--text-secondary);
 }
 
+/* Shared column grid for header + rows. */
+.log-head,
+.commit-row {
+  display: grid;
+  grid-template-columns: minmax(80px, max-content) 1fr 130px 140px 90px;
+  align-items: center;
+  column-gap: 12px;
+  padding: 0 16px;
+  box-sizing: border-box;
+}
+
+.log-head {
+  height: 30px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-sidebar);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
 .log-list {
   flex: 1;
   overflow-y: auto;
 }
 
 .commit-row {
-  padding: 8px 16px;
+  height: 32px;
   border-bottom: 1px solid var(--border);
   cursor: pointer;
 }
@@ -43,34 +95,28 @@
 
 .commit-row.selected {
   background: rgba(10, 132, 255, 0.1);
-  border-left: 3px solid var(--accent);
 }
 
-.commit-main {
+.col-graph {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 2px;
 }
 
-.commit-hash {
-  font-family: "SF Mono", Menlo, monospace;
-  font-size: 12px;
-  color: var(--accent);
-  flex-shrink: 0;
+.commit-graph {
+  overflow: visible;
+}
+
+.col-desc {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .commit-message {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  flex: 1;
-}
-
-.commit-refs {
-  display: flex;
-  gap: 4px;
-  margin-top: 3px;
 }
 
 .commit-ref {
@@ -82,17 +128,40 @@
   flex-shrink: 0;
 }
 
-.commit-meta {
-  display: flex;
-  gap: 12px;
-  font-size: 11px;
+.col-date,
+.col-author {
+  font-size: 12px;
   color: var(--text-secondary);
-  margin-left: auto;
-  flex-shrink: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.col-commit {
+  font-family: "SF Mono", Menlo, monospace;
+  font-size: 12px;
+  color: var(--accent);
 }
 
 .commit-loading {
   padding: 12px 16px;
   text-align: center;
   color: var(--text-secondary);
+}
+
+.log-load-more {
+  display: block;
+  width: calc(100% - 32px);
+  margin: 12px 16px;
+  padding: 8px;
+  font-size: 12px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-sidebar);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.log-load-more:hover {
+  background: var(--bg-hover);
 }

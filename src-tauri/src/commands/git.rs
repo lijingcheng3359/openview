@@ -10,6 +10,7 @@ pub struct GitCommit {
     pub date: i64,
     pub message: String,
     pub refs: Vec<String>,
+    pub parents: Vec<String>,
 }
 
 #[derive(Serialize)]
@@ -37,11 +38,106 @@ pub fn git_branch(path: String) -> Result<String, String> {
 }
 
 #[tauri::command]
-pub fn git_log(path: String, offset: Option<usize>, limit: Option<usize>) -> Result<Vec<GitCommit>, String> {
+pub fn git_branches(path: String) -> Result<Vec<String>, String> {
+    let repo = Repository::discover(&path).map_err(|e| e.to_string())?;
+    // List both local and remote-tracking branches so the picker exposes remote
+    // branches too, not just whatever is checked out locally.
+    let branches = repo
+        .branches(None)
+        .map_err(|e| e.to_string())?;
+    // Current HEAD branch, pinned to the top of the list so the branch the user
+    // is actually on opens first instead of being buried in the alphabetical run.
+    let head_branch = repo
+        .head()
+        .ok()
+        .filter(|h| h.is_branch())
+        .and_then(|h| h.shorthand().map(|s| s.to_string()));
+    // This is a local viewer, not the remote's server view: show local branches
+    // first (what the user checks out and works on), then remote-tracking ones as
+    // a read-only supplement. Strip the leading `<remote>/` prefix so a local
+    // `master` and a remote `origin/master` read as one entry, and de-duplicate
+    // against locals. `git_log` resolves a bare name back to refs/heads,
+    // refs/remotes/<name>, or refs/remotes/origin/<name>, so the prefix isn't
+    // needed for selection.
+    let mut local: Vec<String> = Vec::new();
+    let mut remote: Vec<String> = Vec::new();
+    for (branch, kind) in branches.filter_map(|b| b.ok()) {
+        let Some(name) = branch.name().ok().flatten() else {
+            continue;
+        };
+        match kind {
+            git2::BranchType::Local => local.push(name.to_string()),
+            git2::BranchType::Remote => {
+                // Skip the remote's symbolic HEAD alias. Depending on the ref it
+                // surfaces either as "origin/HEAD" or, once shortened, as a bare
+                // remote name like "origin" with no branch segment.
+                if name.ends_with("/HEAD") || !name.contains('/') {
+                    continue;
+                }
+                // Drop the `<remote>/` prefix (first path segment) for display.
+                let stripped = name.splitn(2, '/').nth(1).unwrap_or(name);
+                remote.push(stripped.to_string());
+            }
+        }
+    }
+    local.sort();
+    remote.sort();
+    remote.dedup();
+    let mut out = local.clone();
+    for name in remote {
+        if !local.contains(&name) {
+            out.push(name);
+        }
+    }
+    // Float the current branch to the front so it's the default selection.
+    if let Some(head) = head_branch {
+        if let Some(pos) = out.iter().position(|n| n == &head) {
+            let name = out.remove(pos);
+            out.insert(0, name);
+        }
+    }
+    Ok(out)
+}
+
+#[tauri::command]
+pub fn git_log(
+    path: String,
+    offset: Option<usize>,
+    limit: Option<usize>,
+    branch: Option<String>,
+) -> Result<Vec<GitCommit>, String> {
     let repo = Repository::discover(&path).map_err(|e| e.to_string())?;
     let mut revwalk = repo.revwalk().map_err(|e| e.to_string())?;
-    revwalk.set_sorting(Sort::TIME).map_err(|e| e.to_string())?;
-    revwalk.push_head().map_err(|e| e.to_string())?;
+    revwalk
+        .set_sorting(Sort::TOPOLOGICAL | Sort::TIME)
+        .map_err(|e| e.to_string())?;
+    // Graph only the selected branch's reachable history, matching the web git
+    // graph's default scope (current branch, not every remote ref). A given
+    // branch name may be local (refs/heads/<name>) or remote-tracking
+    // (refs/remotes/<name>); try local first, then remote, then fall back to
+    // HEAD when no branch is selected.
+    match branch.as_deref().filter(|b| !b.is_empty()) {
+        Some(name) => {
+            // The dropdown shows bare names (no `<remote>/` prefix), so try, in
+            // order: a local branch, a fully-qualified remote-tracking ref, then
+            // the same name under refs/remotes/origin/. Fall back to HEAD.
+            let local = format!("refs/heads/{}", name);
+            let remote = format!("refs/remotes/{}", name);
+            let remote_origin = format!("refs/remotes/origin/{}", name);
+            if repo.find_reference(&local).is_ok() {
+                revwalk.push_ref(&local).map_err(|e| e.to_string())?;
+            } else if repo.find_reference(&remote).is_ok() {
+                revwalk.push_ref(&remote).map_err(|e| e.to_string())?;
+            } else if repo.find_reference(&remote_origin).is_ok() {
+                revwalk.push_ref(&remote_origin).map_err(|e| e.to_string())?;
+            } else {
+                revwalk.push_head().map_err(|e| e.to_string())?;
+            }
+        }
+        None => {
+            revwalk.push_head().map_err(|e| e.to_string())?;
+        }
+    }
 
     let references = collect_refs(&repo);
     let start = offset.unwrap_or(0);
@@ -54,7 +150,7 @@ pub fn git_log(path: String, offset: Option<usize>, limit: Option<usize>) -> Res
         .filter_map(|oid| {
             let commit = repo.find_commit(oid).ok()?;
             let hash = oid.to_string();
-            let short_hash = hash[..7].to_string();
+            let short_hash = hash[..8].to_string();
             let author = commit.author();
             let refs = references
                 .iter()
@@ -70,6 +166,7 @@ pub fn git_log(path: String, offset: Option<usize>, limit: Option<usize>) -> Res
                 date: commit.time().seconds(),
                 message: commit.message().unwrap_or("").to_string(),
                 refs,
+                parents: commit.parent_ids().map(|id| id.to_string()).collect(),
             })
         })
         .collect();

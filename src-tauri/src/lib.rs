@@ -28,6 +28,7 @@ pub fn run() {
             csv_cmd::parse_csv,
             git::git_detect,
             git::git_branch,
+            git::git_branches,
             git::git_log,
             git::git_diff,
             sqlite_cmd::sqlite_list_tables,
