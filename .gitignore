@@ -16,6 +16,10 @@ src-tauri/target/
 # Claude Code
 .claude/
 
+# Qoder
+.qoder/
+AGENTS.md
+
 # Planning artifacts
 openspec/
 SPEC.md
