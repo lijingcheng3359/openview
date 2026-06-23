@@ -106,6 +106,19 @@
   font-style: italic;
 }
 
+.json-show-more {
+  cursor: pointer;
+  color: var(--accent);
+  font-size: 12px;
+  font-style: italic;
+  border-radius: 3px;
+  padding: 0 4px;
+}
+
+.json-show-more:hover {
+  background: var(--bg-hover);
+}
+
 .json-string {
   color: #0a7e3f;
 }

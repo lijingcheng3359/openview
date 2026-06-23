@@ -43,32 +43,39 @@
   margin-left: auto;
 }
 
+/* Virtualized table: header is a sticky flex row, body is a scroll container
+   whose total height is the virtualizer's measured height. Each visible row is
+   absolutely positioned via transform. Columns share a fixed width so header
+   and body cells line up without a real <table>. */
+
 .csv-table-container {
   flex: 1;
   overflow: auto;
+  position: relative;
 }
 
-.csv-table {
-  width: 100%;
-  border-collapse: collapse;
+.csv-row {
+  display: flex;
   font-size: 13px;
-  table-layout: auto;
 }
 
-.csv-table thead {
+.csv-head-row {
   position: sticky;
   top: 0;
   z-index: 1;
-}
-
-.csv-table th {
   background: var(--bg-sidebar);
   border-bottom: 2px solid var(--border);
+  width: max-content;
+  min-width: 100%;
+}
+
+.csv-th {
+  flex: 0 0 var(--csv-col-w, 180px);
+  width: var(--csv-col-w, 180px);
   padding: 6px 12px;
-  text-align: left;
   font-weight: 600;
   font-size: 12px;
-  white-space: nowrap;
+  box-sizing: border-box;
 }
 
 .csv-th-content {
@@ -101,17 +108,33 @@
   font-size: 11px;
 }
 
-.csv-table td {
+.csv-body {
+  position: relative;
+  width: max-content;
+  min-width: 100%;
+}
+
+.csv-body-row {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  width: 100%;
+}
+
+.csv-body-row:hover {
+  background: var(--bg-hover);
+}
+
+.csv-td {
+  flex: 0 0 var(--csv-col-w, 180px);
+  width: var(--csv-col-w, 180px);
   padding: 4px 12px;
   border-bottom: 1px solid var(--border);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 300px;
-}
-
-.csv-table tbody tr:hover td {
-  background: var(--bg-hover);
+  box-sizing: border-box;
 }
 
 .csv-error {

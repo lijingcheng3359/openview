@@ -1,7 +1,10 @@
-import { Component, createSignal, createMemo, Show, For } from "solid-js";
+import { Component, createSignal, createMemo, createEffect, Show, For } from "solid-js";
 import "./JsonViewer.css";
 
 const DEFAULT_EXPAND_DEPTH = 2;
+// Render large arrays/objects in chunks so a single huge collection doesn't
+// blow up the DOM. Children beyond the current chunk are revealed on demand.
+const CHUNK = 100;
 
 const JsonNode: Component<{
   value: unknown;
@@ -16,12 +19,23 @@ const JsonNode: Component<{
   };
 
   const [expanded, setExpanded] = createSignal(props.depth < DEFAULT_EXPAND_DEPTH);
+  // How many children are currently rendered. Reset to one chunk whenever this
+  // node collapses, so re-expanding a huge collection starts cheap again.
+  const [shown, setShown] = createSignal(CHUNK);
 
-  const toggle = () => setExpanded(!expanded());
+  const toggle = () => {
+    const next = !expanded();
+    setExpanded(next);
+    if (!next) setShown(CHUNK);
+  };
 
-  createMemo(() => {
+  // expandAll/collapseAll is driven by a counter the parent bumps; react to it.
+  createEffect(() => {
     if (props.expandAll > 0) setExpanded(true);
-    if (props.expandAll < 0) setExpanded(false);
+    if (props.expandAll < 0) {
+      setExpanded(false);
+      setShown(CHUNK);
+    }
   });
 
   const isArray = () => Array.isArray(props.value);
@@ -72,7 +86,7 @@ const JsonNode: Component<{
           </Show>
         </div>
         <Show when={expanded()}>
-          <For each={entries()}>
+          <For each={entries().slice(0, shown())}>
             {(entry, i) => (
               <JsonNode
                 value={entry.value}
@@ -83,6 +97,15 @@ const JsonNode: Component<{
               />
             )}
           </For>
+          <Show when={count() > shown()}>
+            <div
+              class="json-line json-show-more"
+              style={{ "padding-left": `${(props.depth + 1) > 0 ? 20 : 0}px` }}
+              onClick={() => setShown((n) => n + CHUNK * 5)}
+            >
+              … show {Math.min(CHUNK * 5, count() - shown())} more of {count() - shown()} remaining
+            </div>
+          </Show>
           <div class="json-line" style={{ "padding-left": `${props.depth > 0 ? 20 : 0}px` }}>
             <span class="json-bracket">{bracket()[1]}</span>
             <span class="json-comma">{comma()}</span>
