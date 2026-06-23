@@ -183,10 +183,10 @@ const Sidebar: Component<{
 
     unlistenFs?.();
     unlistenFs = await listen<string>("fs-changed", () => {
+      setRefreshKey((k) => k + 1);
       invoke<FileEntry[]>("read_dir", { path }).then((newEntries) => {
         if (!entriesEqual(entries(), newEntries)) {
           setEntries(newEntries);
-          setRefreshKey((k) => k + 1);
         }
       });
     });
