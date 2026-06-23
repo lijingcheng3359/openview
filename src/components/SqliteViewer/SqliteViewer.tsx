@@ -238,7 +238,7 @@ const SqliteViewer: Component<{ path: string }> = (props) => {
                   >
                     <For each={row()}>
                       {(cell) => (
-                        <div class="csv-td" classList={{ "null-cell": cell === "NULL" }}>{cell}</div>
+                        <div class="csv-td" classList={{ "null-cell": cell === "NULL" }} title={cell}>{cell}</div>
                       )}
                     </For>
                   </div>

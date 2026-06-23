@@ -108,6 +108,138 @@
   font-size: 11px;
 }
 
+/* Multi-select dropdown trigger button — sized like the text filter input. */
+.csv-filter-select {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  width: 100%;
+  margin-top: 4px;
+  padding: 2px 6px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 11px;
+  font-weight: 400;
+  cursor: pointer;
+  text-align: left;
+}
+
+.csv-filter-select:hover {
+  background: var(--bg-hover);
+}
+
+.csv-filter-select.active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.csv-filter-caret {
+  font-size: 9px;
+  opacity: 0.7;
+}
+
+/* Popover floats above the table; position: fixed avoids clipping by the
+   scroll container's overflow. Anchored to the trigger via JS bounding rect. */
+.csv-filter-popover {
+  position: fixed;
+  z-index: 10;
+  width: 220px;
+  max-height: 320px;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
+
+.csv-filter-search {
+  margin: 6px;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-sidebar);
+  color: var(--text-primary);
+  font-size: 12px;
+}
+
+.csv-filter-options {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 4px;
+}
+
+.csv-filter-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  font-size: 12px;
+  font-weight: 400;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.csv-filter-option:hover {
+  background: var(--bg-hover);
+}
+
+.csv-filter-option input {
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.csv-filter-option-label {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.csv-filter-option-count {
+  flex-shrink: 0;
+  min-width: 24px;
+  padding: 0 6px;
+  border-radius: 8px;
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+  font-size: 10px;
+  line-height: 16px;
+  text-align: center;
+}
+
+.csv-filter-empty {
+  padding: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.csv-filter-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding: 6px;
+  border-top: 1px solid var(--border);
+}
+
+.csv-filter-clear {
+  padding: 3px 10px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.csv-filter-clear:hover {
+  background: var(--bg-hover);
+}
+
 .csv-body {
   position: relative;
   width: max-content;
@@ -135,6 +267,11 @@
   overflow: hidden;
   text-overflow: ellipsis;
   box-sizing: border-box;
+  /* WKWebView defaults non-input text to unselectable; opt cells back in so
+     content can be selected and copied, and show a text cursor over them. */
+  -webkit-user-select: text;
+  user-select: text;
+  cursor: text;
 }
 
 .csv-error {
