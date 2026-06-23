@@ -244,3 +244,165 @@ pub fn git_diff(path: String, commit_hash: Option<String>) -> Result<GitDiffResu
 
     Ok(GitDiffResult { files })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use git2::{Repository, Signature};
+    use std::fs;
+    use std::path::Path;
+    use tempfile::tempdir;
+
+    fn sig() -> Signature<'static> {
+        Signature::now("Tester", "tester@example.com").unwrap()
+    }
+
+    // Commit a file and return the new commit's full hash.
+    fn commit_file(repo: &Repository, name: &str, content: &str, msg: &str) -> String {
+        let root = repo.workdir().unwrap();
+        fs::write(root.join(name), content).unwrap();
+        let mut index = repo.index().unwrap();
+        index.add_path(Path::new(name)).unwrap();
+        index.write().unwrap();
+        let tree_oid = index.write_tree().unwrap();
+        let tree = repo.find_tree(tree_oid).unwrap();
+        let parents: Vec<git2::Commit> = match repo.head().ok().and_then(|h| h.peel_to_commit().ok())
+        {
+            Some(c) => vec![c],
+            None => vec![],
+        };
+        let parent_refs: Vec<&git2::Commit> = parents.iter().collect();
+        let oid = repo
+            .commit(Some("HEAD"), &sig(), &sig(), msg, &tree, &parent_refs)
+            .unwrap();
+        oid.to_string()
+    }
+
+    fn init_repo() -> (tempfile::TempDir, Repository) {
+        let dir = tempdir().unwrap();
+        let repo = Repository::init(dir.path()).unwrap();
+        (dir, repo)
+    }
+
+    fn path_str(dir: &tempfile::TempDir) -> String {
+        dir.path().to_string_lossy().to_string()
+    }
+
+    #[test]
+    fn git_detect_true_for_repo_false_otherwise() {
+        let (dir, _repo) = init_repo();
+        assert!(git_detect(path_str(&dir)));
+
+        let plain = tempdir().unwrap();
+        assert!(!git_detect(plain.path().to_string_lossy().to_string()));
+    }
+
+    #[test]
+    fn git_log_returns_commits_newest_first() {
+        let (dir, repo) = init_repo();
+        commit_file(&repo, "a.txt", "1", "first");
+        commit_file(&repo, "a.txt", "2", "second");
+        commit_file(&repo, "a.txt", "3", "third");
+
+        let log = git_log(path_str(&dir), None, None, None).unwrap();
+        assert_eq!(log.len(), 3);
+        assert_eq!(log[0].message.trim(), "third");
+        assert_eq!(log[2].message.trim(), "first");
+    }
+
+    #[test]
+    fn git_log_populates_commit_fields() {
+        let (dir, repo) = init_repo();
+        commit_file(&repo, "a.txt", "1", "only");
+        let log = git_log(path_str(&dir), None, None, None).unwrap();
+        let c = &log[0];
+        assert_eq!(c.author, "Tester");
+        assert_eq!(c.email, "tester@example.com");
+        assert_eq!(c.short_hash.len(), 8);
+        assert!(c.hash.starts_with(&c.short_hash));
+        assert!(c.parents.is_empty());
+    }
+
+    #[test]
+    fn git_log_records_parent_hashes() {
+        let (dir, repo) = init_repo();
+        let first = commit_file(&repo, "a.txt", "1", "first");
+        commit_file(&repo, "a.txt", "2", "second");
+        let log = git_log(path_str(&dir), None, None, None).unwrap();
+        // Newest commit's parent is the first commit.
+        assert_eq!(log[0].parents, vec![first]);
+    }
+
+    #[test]
+    fn git_log_respects_offset_and_limit() {
+        let (dir, repo) = init_repo();
+        for i in 0..5 {
+            commit_file(&repo, "a.txt", &i.to_string(), &format!("c{}", i));
+        }
+        // Skip the 2 newest, take 2.
+        let log = git_log(path_str(&dir), Some(2), Some(2), None).unwrap();
+        assert_eq!(log.len(), 2);
+        assert_eq!(log[0].message.trim(), "c2");
+        assert_eq!(log[1].message.trim(), "c1");
+    }
+
+    #[test]
+    fn git_branch_reports_checked_out_branch() {
+        let (dir, repo) = init_repo();
+        commit_file(&repo, "a.txt", "1", "first");
+        let branch = git_branch(path_str(&dir)).unwrap();
+        // Default init branch is "master" or "main" depending on git config.
+        assert!(branch == "master" || branch == "main", "got {branch}");
+    }
+
+    #[test]
+    fn git_branches_lists_locals_with_current_first() {
+        let (dir, repo) = init_repo();
+        commit_file(&repo, "a.txt", "1", "first");
+        let head_commit = repo.head().unwrap().peel_to_commit().unwrap();
+        repo.branch("feature", &head_commit, false).unwrap();
+        repo.branch("aaa-early", &head_commit, false).unwrap();
+
+        let branches = git_branches(path_str(&dir)).unwrap();
+        let current = git_branch(path_str(&dir)).unwrap();
+        // Current branch is floated to the front.
+        assert_eq!(branches[0], current);
+        // All locals present.
+        assert!(branches.contains(&"feature".to_string()));
+        assert!(branches.contains(&"aaa-early".to_string()));
+    }
+
+    #[test]
+    fn git_diff_for_commit_reports_added_file() {
+        let (dir, repo) = init_repo();
+        let hash = commit_file(&repo, "new.txt", "content\n", "add new");
+        let result = git_diff(path_str(&dir), Some(hash)).unwrap();
+        assert_eq!(result.files.len(), 1);
+        assert_eq!(result.files[0].path, "new.txt");
+        assert_eq!(result.files[0].status, "added");
+        assert!(result.files[0].patch.as_ref().unwrap().contains("content"));
+    }
+
+    #[test]
+    fn git_diff_workdir_detects_untracked_file() {
+        let (dir, repo) = init_repo();
+        commit_file(&repo, "a.txt", "1", "first");
+        // Drop an untracked file into the workdir.
+        fs::write(dir.path().join("untracked.txt"), "hi").unwrap();
+        let result = git_diff(path_str(&dir), None).unwrap();
+        let untracked = result
+            .files
+            .iter()
+            .find(|f| f.path == "untracked.txt")
+            .expect("untracked file should appear in workdir diff");
+        assert_eq!(untracked.status, "untracked");
+    }
+
+    #[test]
+    fn git_diff_invalid_hash_errors() {
+        let (dir, repo) = init_repo();
+        commit_file(&repo, "a.txt", "1", "first");
+        let res = git_diff(path_str(&dir), Some("notahash".to_string()));
+        assert!(res.is_err());
+    }
+}

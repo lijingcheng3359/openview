@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import { defineConfig } from "vite";
 import solidPlugin from "vite-plugin-solid";
 import { resolve } from "path";
@@ -13,5 +14,9 @@ export default defineConfig({
     rollupOptions: {
       input: resolve(__dirname, "index.html"),
     },
+  },
+  test: {
+    environment: "jsdom",
+    include: ["src/**/*.{test,spec}.{ts,tsx}"],
   },
 });
