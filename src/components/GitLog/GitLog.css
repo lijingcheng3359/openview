@@ -59,7 +59,7 @@
 .log-head,
 .commit-row {
   display: grid;
-  grid-template-columns: minmax(80px, max-content) 1fr 130px 140px 90px;
+  grid-template-columns: minmax(80px, max-content) 1fr 90px 140px 130px;
   align-items: center;
   column-gap: 12px;
   padding: 0 16px;

@@ -182,9 +182,9 @@ const GitLog: Component = () => {
       <div class="log-head">
         <span class="col-graph">Graph</span>
         <span class="col-desc">Description</span>
-        <span class="col-date">Date</span>
-        <span class="col-author">Author</span>
         <span class="col-commit">Commit</span>
+        <span class="col-author">Author</span>
+        <span class="col-date">Date</span>
       </div>
 
       <div class="log-list">
@@ -235,9 +235,9 @@ const GitLog: Component = () => {
                   </Show>
                   <span class="commit-message">{commit().message.split("\n")[0]}</span>
                 </span>
-                <span class="col-date">{formatDate(commit().date)}</span>
-                <span class="col-author">{commit().author}</span>
                 <span class="col-commit">{commit().short_hash}</span>
+                <span class="col-author">{commit().author}</span>
+                <span class="col-date">{formatDate(commit().date)}</span>
               </div>
             );
           }}
