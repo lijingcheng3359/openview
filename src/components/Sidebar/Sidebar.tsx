@@ -1,7 +1,7 @@
-import { Component, createSignal, createEffect, For, Show, onCleanup } from "solid-js";
+import { Component, createSignal, createEffect, createMemo, For, Show, onCleanup } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-import { appStore, getRecentProjects, RecentProject } from "../../stores/app";
+import { appStore, getRecentProjects, matchRecentProject, RecentProject } from "../../stores/app";
 import { getFileIcon } from "./FileIcons";
 import "./Sidebar.css";
 
@@ -146,9 +146,11 @@ const Sidebar: Component<{
   const [searchResults, setSearchResults] = createSignal<FileEntry[]>([]);
   const [searching, setSearching] = createSignal(false);
   const [dropdownOpen, setDropdownOpen] = createSignal(false);
+  const [projectQuery, setProjectQuery] = createSignal("");
   const [refreshKey, setRefreshKey] = createSignal(0);
   let debounceTimer: ReturnType<typeof setTimeout> | undefined;
   let dropdownRef: HTMLDivElement | undefined;
+  let projectSearchRef: HTMLInputElement | undefined;
   let unlistenFs: UnlistenFn | undefined;
 
   onCleanup(() => {
@@ -165,8 +167,10 @@ const Sidebar: Component<{
   createEffect(() => {
     if (dropdownOpen()) {
       document.addEventListener("mousedown", handleClickOutside);
+      queueMicrotask(() => projectSearchRef?.focus());
     } else {
       document.removeEventListener("mousedown", handleClickOutside);
+      setProjectQuery("");
     }
   });
 
@@ -241,11 +245,20 @@ const Sidebar: Component<{
 
   const isSearching = () => searchQuery().trim().length > 0;
 
-  const recentProjects = () => {
+  const baseRecent = createMemo<RecentProject[]>(() => {
     dropdownOpen();
     const current = appStore.rootPath();
     return getRecentProjects().filter((p) => p.path !== current);
-  };
+  });
+
+  const recentProjects = createMemo(() => {
+    const q = projectQuery();
+    const base = baseRecent();
+    if (!q.trim()) return base;
+    return base.filter((p) => matchRecentProject(p, q));
+  });
+
+  const hasRecent = () => baseRecent().length > 0;
 
   return (
     <div class="sidebar" style={{ width: `${appStore.sidebarWidth()}px` }}>
@@ -281,20 +294,54 @@ const Sidebar: Component<{
             <div class="project-dropdown-item open-folder" onClick={handleOpenFolder}>
               Open Folder...
             </div>
-            <Show when={recentProjects().length > 0}>
+            <Show when={hasRecent()}>
               <div class="project-dropdown-divider" />
               <div class="project-dropdown-label">Recent</div>
-              <For each={recentProjects()}>
-                {(project) => (
-                  <div
-                    class="project-dropdown-item"
-                    onClick={() => handleSwitchProject(project.path)}
+              <div class="project-dropdown-search">
+                <input
+                  ref={projectSearchRef}
+                  type="text"
+                  class="project-dropdown-search-input"
+                  placeholder="Filter by name, path or pinyin..."
+                  value={projectQuery()}
+                  onInput={(e) => setProjectQuery(e.currentTarget.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      const first = recentProjects()[0];
+                      if (first) {
+                        e.preventDefault();
+                        handleSwitchProject(first.path);
+                      }
+                    }
+                  }}
+                />
+                <Show when={projectQuery()}>
+                  <button
+                    class="project-dropdown-search-clear"
+                    onClick={(e) => { e.stopPropagation(); setProjectQuery(""); }}
+                    title="Clear"
                   >
-                    <span class="project-item-name" title={project.name}>{project.name}</span>
-                    <span class="project-item-path" title={project.path}>{project.path}</span>
-                  </div>
-                )}
-              </For>
+                    <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+                      <path d="M3.72 3.72a.75.75 0 0 1 1.06 0L8 6.94l3.22-3.22a.749.749 0 1 1 1.06 1.06L9.06 8l3.22 3.22a.749.749 0 1 1-1.06 1.06L8 9.06l-3.22 3.22a.749.749 0 1 1-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 0 1 0-1.06z"/>
+                    </svg>
+                  </button>
+                </Show>
+              </div>
+              <Show when={recentProjects().length > 0} fallback={
+                <div class="project-dropdown-empty">No matches</div>
+              }>
+                <For each={recentProjects()}>
+                  {(project) => (
+                    <div
+                      class="project-dropdown-item"
+                      onClick={() => handleSwitchProject(project.path)}
+                    >
+                      <span class="project-item-name" title={project.name}>{project.name}</span>
+                      <span class="project-item-path" title={project.path}>{project.path}</span>
+                    </div>
+                  )}
+                </For>
+              </Show>
             </Show>
           </div>
         </Show>

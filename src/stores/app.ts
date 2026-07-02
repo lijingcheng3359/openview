@@ -1,4 +1,5 @@
 import { createSignal, createRoot } from "solid-js";
+import { pinyin } from "pinyin-pro";
 
 export type ViewMode = "markdown" | "csv" | "mermaid" | "json" | "image" | "sqlite" | "code" | "plaintext" | "git-log" | "git-diff";
 
@@ -9,7 +10,7 @@ export interface RecentProject {
 }
 
 const RECENT_KEY = "openview_recent_projects";
-const MAX_RECENT = 10;
+const MAX_RECENT = 21;
 
 export function getRecentProjects(): RecentProject[] {
   try {
@@ -24,6 +25,29 @@ export function addRecentProject(path: string): void {
   const list = getRecentProjects().filter((p) => p.path !== path);
   list.unshift({ path, name, timestamp: Date.now() });
   localStorage.setItem(RECENT_KEY, JSON.stringify(list.slice(0, MAX_RECENT)));
+}
+
+const pinyinCache = new Map<string, { full: string; initials: string }>();
+
+function getPinyinFor(name: string): { full: string; initials: string } {
+  let entry = pinyinCache.get(name);
+  if (!entry) {
+    const full = pinyin(name, { toneType: "none", type: "array" }).join("").toLowerCase();
+    const initials = pinyin(name, { pattern: "first", toneType: "none", type: "array" }).join("").toLowerCase();
+    entry = { full, initials };
+    pinyinCache.set(name, entry);
+  }
+  return entry;
+}
+
+export function matchRecentProject(project: RecentProject, query: string): boolean {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+  const name = project.name.toLowerCase();
+  const path = project.path.toLowerCase();
+  if (name.includes(q) || path.includes(q)) return true;
+  const { full, initials } = getPinyinFor(project.name);
+  return full.includes(q) || initials.includes(q);
 }
 
 export interface Tab {

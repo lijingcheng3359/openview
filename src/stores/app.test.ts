@@ -153,12 +153,12 @@ describe("recent projects", () => {
     expect(list[1].path).toBe("/b");
   });
 
-  it("caps the list at 10 most-recent entries", () => {
-    for (let i = 0; i < 15; i++) addRecentProject("/p" + i);
+  it("caps the list at 21 most-recent entries", () => {
+    for (let i = 0; i < 25; i++) addRecentProject("/p" + i);
     const list = getRecentProjects();
-    expect(list).toHaveLength(10);
-    // Newest first: /p14 down to /p5.
-    expect(list[0].path).toBe("/p14");
-    expect(list[9].path).toBe("/p5");
+    expect(list).toHaveLength(21);
+    // Newest first: /p24 down to /p4.
+    expect(list[0].path).toBe("/p24");
+    expect(list[20].path).toBe("/p4");
   });
 });
