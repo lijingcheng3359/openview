@@ -82,6 +82,11 @@
   color: var(--text-primary);
 }
 
+.project-action-btn.follow-active {
+  background: var(--bg-hover);
+  color: var(--accent);
+}
+
 .project-folder-icon {
   flex-shrink: 0;
   color: var(--text-secondary);

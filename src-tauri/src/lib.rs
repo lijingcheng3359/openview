@@ -8,6 +8,7 @@ use std::sync::{Arc, Mutex};
 pub fn run() {
     tauri::Builder::default()
         .manage(Arc::new(Mutex::new(watcher::WatcherState::new())))
+        .manage(Arc::new(Mutex::new(watcher::FollowState::new())))
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .setup(|app| {
@@ -34,6 +35,8 @@ pub fn run() {
             sqlite_cmd::sqlite_list_tables,
             sqlite_cmd::sqlite_query_table,
             watcher::watch_path,
+            watcher::get_terminal_project,
+            watcher::watch_terminal_project,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

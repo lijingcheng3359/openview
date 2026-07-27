@@ -58,12 +58,20 @@ export interface Tab {
   content?: string;
 }
 
+const FOLLOW_KEY = "openview_follow_terminal";
+
 function createAppStore() {
   const [rootPath, setRootPath] = createSignal<string | null>(null);
   const [tabs, setTabs] = createSignal<Tab[]>([]);
   const [activeTabId, setActiveTabId] = createSignal<string | null>(null);
   const [isGitRepo, setIsGitRepo] = createSignal(false);
   const [sidebarWidth, setSidebarWidth] = createSignal(250);
+  const [followTerminal, setFollowTerminalSignal] = createSignal(localStorage.getItem(FOLLOW_KEY) === "1");
+
+  function setFollowTerminal(value: boolean) {
+    setFollowTerminalSignal(value);
+    localStorage.setItem(FOLLOW_KEY, value ? "1" : "0");
+  }
 
   function detectMode(filename: string): ViewMode {
     const base = filename.toLowerCase();
@@ -221,6 +229,8 @@ function createAppStore() {
     setIsGitRepo,
     sidebarWidth,
     setSidebarWidth,
+    followTerminal,
+    setFollowTerminal,
     detectMode,
     openFile,
     closeTab,

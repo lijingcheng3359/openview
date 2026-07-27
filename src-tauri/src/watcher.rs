@@ -64,3 +64,70 @@ pub fn watch_path(path: String, app: AppHandle, state: tauri::State<'_, Arc<Mute
 
     Ok(())
 }
+
+pub struct FollowState {
+    watcher: Option<RecommendedWatcher>,
+}
+
+impl FollowState {
+    pub fn new() -> Self {
+        Self { watcher: None }
+    }
+}
+
+fn read_active_project() -> Option<String> {
+    let home = std::env::var_os("HOME")?;
+    let file = Path::new(&home).join(".open-term").join("active-project");
+    let content = std::fs::read_to_string(file).ok()?;
+    let trimmed = content.trim();
+    if trimmed.is_empty() {
+        None
+    } else {
+        Some(trimmed.to_string())
+    }
+}
+
+#[tauri::command]
+pub fn get_terminal_project() -> Option<String> {
+    read_active_project()
+}
+
+#[tauri::command]
+pub fn watch_terminal_project(app: AppHandle, state: tauri::State<'_, Arc<Mutex<FollowState>>>) -> Result<(), String> {
+    let mut guard = state.lock().map_err(|e| e.to_string())?;
+    if guard.watcher.is_some() {
+        return Ok(());
+    }
+
+    let home = std::env::var_os("HOME").ok_or("HOME not set")?;
+    let dir = Path::new(&home).join(".open-term");
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+
+    let app_handle = app.clone();
+    let mut watcher = RecommendedWatcher::new(
+        move |res: Result<Event, notify::Error>| {
+            if let Ok(event) = res {
+                use notify::EventKind::*;
+                match event.kind {
+                    Create(_) | Modify(_) => {}
+                    _ => return,
+                }
+                let touched = event.paths.iter().any(|p| {
+                    p.file_name().map(|n| n == "active-project").unwrap_or(false)
+                });
+                if !touched {
+                    return;
+                }
+                if let Some(path) = read_active_project() {
+                    let _ = app_handle.emit("terminal-project-changed", path);
+                }
+            }
+        },
+        notify::Config::default(),
+    ).map_err(|e| e.to_string())?;
+
+    watcher.watch(&dir, RecursiveMode::NonRecursive).map_err(|e| e.to_string())?;
+    guard.watcher = Some(watcher);
+
+    Ok(())
+}

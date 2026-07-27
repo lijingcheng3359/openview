@@ -1,4 +1,4 @@
-import { Component, Show, Switch, Match, For, onMount, onCleanup } from "solid-js";
+import { Component, Show, Switch, Match, For, onMount, onCleanup, createEffect } from "solid-js";
 import { invoke, convertFileSrc } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-dialog";
@@ -18,6 +18,7 @@ const SKIP_RELOAD_MODES = new Set(["git-log", "git-diff", "image", "sqlite"]);
 
 const App: Component = () => {
   let unlistenFs: (() => void) | undefined;
+  let unlistenFollow: (() => void) | undefined;
 
   onMount(async () => {
     unlistenFs = await listen("fs-changed", async () => {
@@ -30,9 +31,33 @@ const App: Component = () => {
         }
       } catch {}
     });
+
+    invoke("watch_terminal_project").catch(() => {});
+    unlistenFollow = await listen<string>("terminal-project-changed", (event) => {
+      if (!appStore.followTerminal()) return;
+      const path = event.payload;
+      if (path && path !== appStore.rootPath()) {
+        switchToProject(path);
+      }
+    });
   });
 
-  onCleanup(() => unlistenFs?.());
+  // When follow is turned on, jump to the terminal's current project right away.
+  createEffect(() => {
+    if (!appStore.followTerminal()) return;
+    invoke<string | null>("get_terminal_project")
+      .then((path) => {
+        if (path && path !== appStore.rootPath()) {
+          switchToProject(path);
+        }
+      })
+      .catch(() => {});
+  });
+
+  onCleanup(() => {
+    unlistenFs?.();
+    unlistenFollow?.();
+  });
 
   async function openFolder() {
     const selected = await open({ directory: true, multiple: false });
