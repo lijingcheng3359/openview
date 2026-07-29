@@ -25,6 +25,7 @@ pub fn run() {
             file::read_dir,
             file::read_file,
             file::search_files,
+            file::open_in_browser,
             markdown::parse_markdown,
             csv_cmd::parse_csv,
             git::git_detect,

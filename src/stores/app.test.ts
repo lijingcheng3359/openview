@@ -26,6 +26,11 @@ describe("detectMode", () => {
     }
   });
 
+  it("maps html extensions to html preview", () => {
+    expect(detectMode("index.html")).toBe("html");
+    expect(detectMode("page.htm")).toBe("html");
+  });
+
   it("maps a wide range of source files to code", () => {
     for (const f of ["a.ts", "a.tsx", "a.py", "a.rs", "a.go", "a.java", "a.sql", "a.yaml", "a.sh"]) {
       expect(detectMode(f)).toBe("code");

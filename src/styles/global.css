@@ -108,6 +108,23 @@ html, body, #root {
   white-space: nowrap;
 }
 
+.header-action-btn {
+  margin-left: auto;
+  padding: 2px 10px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+  -webkit-app-region: no-drag;
+}
+
+.header-action-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
 .empty-state {
   display: flex;
   align-items: center;

@@ -1,7 +1,7 @@
 import { createSignal, createRoot } from "solid-js";
 import { pinyin } from "pinyin-pro";
 
-export type ViewMode = "markdown" | "csv" | "mermaid" | "json" | "image" | "sqlite" | "code" | "plaintext" | "git-log" | "git-diff";
+export type ViewMode = "markdown" | "csv" | "mermaid" | "json" | "image" | "sqlite" | "code" | "html" | "plaintext" | "git-log" | "git-diff";
 
 export interface RecentProject {
   path: string;
@@ -105,6 +105,9 @@ function createAppStore() {
       case "bmp":
       case "ico":
         return "image";
+      case "html":
+      case "htm":
+        return "html";
       case "py":
       case "js":
       case "jsx":
@@ -130,8 +133,6 @@ function createAppStore() {
       case "css":
       case "scss":
       case "less":
-      case "html":
-      case "htm":
       case "xml":
       case "yaml":
       case "yml":

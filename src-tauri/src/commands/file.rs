@@ -50,6 +50,21 @@ pub fn read_file(path: String) -> Result<String, String> {
 }
 
 #[tauri::command]
+pub fn open_in_browser(path: String) -> Result<(), String> {
+    if !Path::new(&path).is_file() {
+        return Err(format!("Not a file: {}", path));
+    }
+    let status = std::process::Command::new("open")
+        .arg(&path)
+        .status()
+        .map_err(|e| format!("Failed to open {}: {}", path, e))?;
+    if !status.success() {
+        return Err(format!("Failed to open {}: open exited with {}", path, status));
+    }
+    Ok(())
+}
+
+#[tauri::command]
 pub fn search_files(root: String, query: String) -> Result<Vec<FileEntry>, String> {
     let query_lower = query.to_lowercase();
     let mut results = Vec::new();

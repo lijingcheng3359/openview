@@ -11,6 +11,7 @@ import GitDiff from "./components/GitDiff/GitDiff";
 import JsonViewer from "./components/JsonViewer/JsonViewer";
 import SqliteViewer from "./components/SqliteViewer/SqliteViewer";
 import CodeViewer from "./components/CodeViewer/CodeViewer";
+import HtmlViewer from "./components/HtmlViewer/HtmlViewer";
 import { appStore, addRecentProject, getRecentProjects } from "./stores/app";
 import "diff2html/bundles/css/diff2html.min.css";
 
@@ -144,6 +145,14 @@ const App: Component = () => {
             <Show when={tab()?.mode !== "git-diff" && tab()?.mode !== "git-log"}>
               <div class="content-header" data-tauri-drag-region>
                 <span class="content-filename">{tab()!.name}</span>
+                <Show when={tab()?.mode === "html"}>
+                  <button
+                    class="header-action-btn"
+                    onClick={() => invoke("open_in_browser", { path: tab()!.path }).catch(console.error)}
+                  >
+                    Open in Browser
+                  </button>
+                </Show>
               </div>
             </Show>
             <div class="content-area">
@@ -176,6 +185,9 @@ const App: Component = () => {
                 </Match>
                 <Match when={tab()?.mode === "code"}>
                   <CodeViewer content={tab()!.content ?? ""} filename={tab()!.name} />
+                </Match>
+                <Match when={tab()?.mode === "html"}>
+                  <HtmlViewer path={tab()!.path} content={tab()!.content ?? ""} />
                 </Match>
                 <Match when={tab()?.mode === "plaintext"}>
                   <div class="plaintext-viewer">
