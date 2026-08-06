@@ -6,7 +6,7 @@ import { resolve } from "path";
 export default defineConfig({
   plugins: [solidPlugin()],
   server: {
-    port: 5173,
+    port: 5273,
     strictPort: true,
   },
   build: {
