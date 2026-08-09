@@ -8,8 +8,12 @@ import "./CodeViewer.css";
 const extToLangName: Record<string, string> = {
   py: "Python",
   js: "JavaScript",
+  mjs: "JavaScript",
+  cjs: "JavaScript",
   jsx: "JSX",
   ts: "TypeScript",
+  mts: "TypeScript",
+  cts: "TypeScript",
   tsx: "TSX",
   go: "Go",
   rs: "Rust",
