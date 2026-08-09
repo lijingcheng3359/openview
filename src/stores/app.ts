@@ -91,6 +91,7 @@ function createAppStore() {
         return "mermaid";
       case "json":
       case "jsonl":
+      case "ndjson":
         return "json";
       case "sqlite":
       case "sqlite3":
@@ -111,8 +112,12 @@ function createAppStore() {
       case "py":
       case "js":
       case "jsx":
+      case "mjs":
+      case "cjs":
       case "ts":
       case "tsx":
+      case "mts":
+      case "cts":
       case "go":
       case "rs":
       case "java":

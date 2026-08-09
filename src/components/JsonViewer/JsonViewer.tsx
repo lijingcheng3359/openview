@@ -116,16 +116,48 @@ const JsonNode: Component<{
   );
 };
 
+type ParseResult =
+  | { ok: true; data: unknown; jsonl: boolean; records: number }
+  | { ok: false; error: string };
+
+export function parseJsonOrJsonl(content: string): ParseResult {
+  let jsonError: unknown;
+  try {
+    return { ok: true, data: JSON.parse(content), jsonl: false, records: 1 };
+  } catch (e) {
+    jsonError = e;
+  }
+
+  const lines: { text: string; lineNo: number }[] = [];
+  content.split("\n").forEach((text, i) => {
+    const trimmed = text.trim();
+    if (trimmed) lines.push({ text: trimmed, lineNo: i + 1 });
+  });
+  if (lines.length < 2) return { ok: false, error: String(jsonError) };
+
+  const data: unknown[] = [];
+  for (const line of lines) {
+    try {
+      data.push(JSON.parse(line.text));
+    } catch (e) {
+      return { ok: false, error: `Line ${line.lineNo}: ${String(e)}` };
+    }
+  }
+  return { ok: true, data, jsonl: true, records: data.length };
+}
+
 const JsonViewer: Component<{ content: string }> = (props) => {
   const [expandAll, setExpandAll] = createSignal(0);
 
-  const parsed = createMemo(() => {
-    try {
-      return { ok: true as const, data: JSON.parse(props.content) };
-    } catch (e) {
-      return { ok: false as const, error: String(e) };
-    }
-  });
+  const parsed = createMemo(() => parseJsonOrJsonl(props.content));
+  const error = () => {
+    const p = parsed();
+    return p.ok ? "" : p.error;
+  };
+  const data = () => {
+    const p = parsed();
+    return p.ok ? p.data : null;
+  };
 
   function handleExpandAll() {
     setExpandAll((v) => Math.abs(v) + 1);
@@ -138,7 +170,12 @@ const JsonViewer: Component<{ content: string }> = (props) => {
   return (
     <div class="json-viewer">
       <div class="json-toolbar">
-        <span class="json-toolbar-title">JSON</span>
+        <span class="json-toolbar-title">
+          {(() => {
+            const p = parsed();
+            return p.ok && p.jsonl ? `JSONL · ${p.records} records` : "JSON";
+          })()}
+        </span>
         <button class="json-toolbar-btn" onClick={handleExpandAll}>Expand All</button>
         <button class="json-toolbar-btn" onClick={handleCollapseAll}>Collapse All</button>
       </div>
@@ -146,11 +183,11 @@ const JsonViewer: Component<{ content: string }> = (props) => {
         <Show when={parsed().ok} fallback={
           <div class="json-error">
             <span class="json-error-label">Parse Error</span>
-            <pre class="json-error-message">{(parsed() as { ok: false; error: string }).error}</pre>
+            <pre class="json-error-message">{error()}</pre>
           </div>
         }>
           <JsonNode
-            value={(parsed() as { ok: true; data: unknown }).data}
+            value={data()}
             depth={0}
             expandAll={expandAll()}
             last={true}

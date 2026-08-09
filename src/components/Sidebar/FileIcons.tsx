@@ -112,7 +112,7 @@ const EXT_ICON_MAP: Record<string, () => JSX.Element> = {
   js: DocJS, jsx: DocJS, mjs: DocJS, cjs: DocJS,
   html: DocMarkup, htm: DocMarkup, xml: DocMarkup, svg: DocMarkup,
   css: DocStyle, scss: DocStyle, less: DocStyle,
-  json: DocConfig, jsonl: DocConfig, yaml: DocConfig, yml: DocConfig,
+  json: DocConfig, jsonl: DocConfig, ndjson: DocConfig, yaml: DocConfig, yml: DocConfig,
   toml: DocConfig, ini: DocConfig, conf: DocConfig, cfg: DocConfig,
   properties: DocConfig, env: DocConfig,
   md: DocMarkdown, markdown: DocMarkdown, mdx: DocMarkdown,
