@@ -146,6 +146,7 @@ function createAppStore() {
       case "conf":
       case "cfg":
       case "properties":
+      case "env":
       case "sql":
       case "swift":
       case "kt":
