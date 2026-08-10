@@ -87,9 +87,24 @@
   color: var(--accent);
 }
 
-.project-folder-icon {
+.project-reveal-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  background: none;
+  border-radius: 4px;
+  cursor: pointer;
   color: var(--text-secondary);
+  -webkit-app-region: no-drag;
+}
+
+.project-reveal-btn:hover {
+  color: var(--accent);
 }
 
 .project-name {

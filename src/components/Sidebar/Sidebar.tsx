@@ -243,6 +243,13 @@ const Sidebar: Component<{
     props.onSwitchProject?.(path);
   }
 
+  function revealProjectInFinder(e: MouseEvent) {
+    e.stopPropagation();
+    const root = appStore.rootPath();
+    if (!root) return;
+    invoke("reveal_in_finder", { path: root });
+  }
+
   const isSearching = () => searchQuery().trim().length > 0;
 
   const baseRecent = createMemo<RecentProject[]>(() => {
@@ -269,9 +276,15 @@ const Sidebar: Component<{
       <div class="project-switcher" ref={dropdownRef}>
         <div class="project-header">
           <div class="project-current" onClick={() => setDropdownOpen(!dropdownOpen())}>
-            <svg class="project-folder-icon" width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M1.75 1A1.75 1.75 0 0 0 0 2.75v10.5C0 14.216.784 15 1.75 15h12.5A1.75 1.75 0 0 0 16 13.25v-8.5A1.75 1.75 0 0 0 14.25 3H7.5a.25.25 0 0 1-.2-.1l-.9-1.2C6.07 1.26 5.55 1 5 1Z"/>
-            </svg>
+            <button
+              class="project-reveal-btn"
+              onClick={revealProjectInFinder}
+              title="Reveal in Finder"
+            >
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M1.75 1A1.75 1.75 0 0 0 0 2.75v10.5c0 .966.784 1.75 1.75 1.75h11.36a1.75 1.75 0 0 0 1.7-1.325l1.113-4.5A1.75 1.75 0 0 0 14.223 7H14V4.75A1.75 1.75 0 0 0 12.25 3H7.5a.25.25 0 0 1-.2-.1l-.9-1.2A1.75 1.75 0 0 0 5 1Zm0 1.5h3.25a.25.25 0 0 1 .2.1l.9 1.2c.33.44.85.7 1.4.7h5.5a.25.25 0 0 1 .25.25V7H4.64a1.75 1.75 0 0 0-1.7 1.325L1.5 14.1V2.75a.25.25 0 0 1 .25-.25Zm2.89 6h9.583a.25.25 0 0 1 .243.31l-1.113 4.5a.25.25 0 0 1-.243.19H2.777a.25.25 0 0 1-.243-.31l1.113-4.5a.25.25 0 0 1 .243-.19Z"/>
+              </svg>
+            </button>
             <span class="project-name" title={appStore.rootPath() ?? ""}>{projectName(appStore.rootPath())}</span>
           </div>
           <div class="project-actions">

@@ -65,6 +65,27 @@ pub fn open_in_browser(path: String) -> Result<(), String> {
 }
 
 #[tauri::command]
+pub fn reveal_in_finder(path: String) -> Result<(), String> {
+    let target = Path::new(&path);
+    if !target.exists() {
+        return Err(format!("Path does not exist: {}", path));
+    }
+    let mut cmd = std::process::Command::new("open");
+    if target.is_dir() {
+        cmd.arg(&path);
+    } else {
+        cmd.arg("-R").arg(&path);
+    }
+    let status = cmd
+        .status()
+        .map_err(|e| format!("Failed to reveal {}: {}", path, e))?;
+    if !status.success() {
+        return Err(format!("Failed to reveal {}: open exited with {}", path, status));
+    }
+    Ok(())
+}
+
+#[tauri::command]
 pub fn search_files(root: String, query: String) -> Result<Vec<FileEntry>, String> {
     let query_lower = query.to_lowercase();
     let mut results = Vec::new();
