@@ -151,11 +151,9 @@ const Sidebar: Component<{
   let debounceTimer: ReturnType<typeof setTimeout> | undefined;
   let dropdownRef: HTMLDivElement | undefined;
   let projectSearchRef: HTMLInputElement | undefined;
-  let unlistenFs: UnlistenFn | undefined;
 
   onCleanup(() => {
     if (debounceTimer) clearTimeout(debounceTimer);
-    unlistenFs?.();
   });
 
   function handleClickOutside(e: MouseEvent) {
@@ -178,21 +176,59 @@ const Sidebar: Component<{
     document.removeEventListener("mousedown", handleClickOutside);
   });
 
-  createEffect(async () => {
+  createEffect(() => {
     const path = appStore.rootPath();
+    let disposed = false;
+    let loadRequestId = 0;
+    let unlistenFs: UnlistenFn | undefined;
+
+    setEntries([]);
     if (!path) return;
 
-    invoke<FileEntry[]>("read_dir", { path }).then(setEntries);
-    invoke("watch_path", { path });
-
-    unlistenFs?.();
-    unlistenFs = await listen<string>("fs-changed", () => {
-      setRefreshKey((k) => k + 1);
-      invoke<FileEntry[]>("read_dir", { path }).then((newEntries) => {
+    const loadEntries = async () => {
+      const requestId = ++loadRequestId;
+      try {
+        const newEntries = await invoke<FileEntry[]>("read_dir", { path });
+        if (disposed || requestId !== loadRequestId) return;
         if (!entriesEqual(entries(), newEntries)) {
           setEntries(newEntries);
         }
-      });
+      } catch {
+        if (!disposed && requestId === loadRequestId) {
+          setEntries([]);
+        }
+      }
+    };
+
+    const setupWatcher = async () => {
+      try {
+        const unlisten = await listen<string>("fs-changed", () => {
+          if (disposed) return;
+          setRefreshKey((k) => k + 1);
+          void loadEntries();
+        });
+        if (disposed) {
+          unlisten();
+          return;
+        }
+        unlistenFs = unlisten;
+        await invoke("watch_path", { path });
+        if (!disposed) {
+          await loadEntries();
+        }
+      } catch {
+        if (!disposed) {
+          setEntries([]);
+        }
+      }
+    };
+
+    void setupWatcher();
+
+    onCleanup(() => {
+      disposed = true;
+      loadRequestId++;
+      unlistenFs?.();
     });
   });
 
