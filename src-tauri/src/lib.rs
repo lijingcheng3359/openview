@@ -1,4 +1,5 @@
 mod commands;
+mod path_policy;
 mod watcher;
 
 use commands::{csv_cmd, file, git, markdown, sqlite_cmd};

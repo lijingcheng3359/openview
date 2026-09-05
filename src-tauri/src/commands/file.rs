@@ -1,3 +1,4 @@
+use crate::path_policy::is_generated_dir_name;
 use serde::Serialize;
 use std::fs;
 use std::path::Path;
@@ -59,7 +60,10 @@ pub fn open_in_browser(path: String) -> Result<(), String> {
         .status()
         .map_err(|e| format!("Failed to open {}: {}", path, e))?;
     if !status.success() {
-        return Err(format!("Failed to open {}: open exited with {}", path, status));
+        return Err(format!(
+            "Failed to open {}: open exited with {}",
+            path, status
+        ));
     }
     Ok(())
 }
@@ -80,7 +84,10 @@ pub fn reveal_in_finder(path: String) -> Result<(), String> {
         .status()
         .map_err(|e| format!("Failed to reveal {}: {}", path, e))?;
     if !status.success() {
-        return Err(format!("Failed to reveal {}: open exited with {}", path, status));
+        return Err(format!(
+            "Failed to reveal {}: open exited with {}",
+            path, status
+        ));
     }
     Ok(())
 }
@@ -103,14 +110,20 @@ fn search_recursive(dir: &Path, query: &str, results: &mut Vec<FileEntry>, limit
     };
     let mut dirs = Vec::new();
     for entry in entries.flatten() {
-        let name = entry.file_name().to_string_lossy().to_string();
-        let metadata = match entry.metadata() {
-            Ok(m) => m,
+        let file_type = match entry.file_type() {
+            Ok(file_type) => file_type,
             Err(_) => continue,
         };
-        if metadata.is_dir() {
-            dirs.push(entry.path());
-        } else if name.to_lowercase().contains(query) {
+        let file_name = entry.file_name();
+        if file_type.is_dir() {
+            if !is_generated_dir_name(&file_name) {
+                dirs.push(entry.path());
+            }
+            continue;
+        }
+
+        let name = file_name.to_string_lossy().to_string();
+        if name.to_lowercase().contains(query) {
             results.push(FileEntry {
                 name,
                 path: entry.path().to_string_lossy().to_string(),
@@ -202,8 +215,11 @@ mod tests {
         let dir = tempdir().unwrap();
         fs::write(dir.path().join("ReadMe.md"), "").unwrap();
         fs::write(dir.path().join("other.txt"), "").unwrap();
-        let results =
-            search_files(dir.path().to_string_lossy().to_string(), "readme".to_string()).unwrap();
+        let results = search_files(
+            dir.path().to_string_lossy().to_string(),
+            "readme".to_string(),
+        )
+        .unwrap();
         assert_eq!(results.len(), 1);
         assert_eq!(results[0].name, "ReadMe.md");
     }
@@ -214,8 +230,11 @@ mod tests {
         let sub = dir.path().join("nested").join("deep");
         fs::create_dir_all(&sub).unwrap();
         fs::write(sub.join("target.rs"), "").unwrap();
-        let results =
-            search_files(dir.path().to_string_lossy().to_string(), "target".to_string()).unwrap();
+        let results = search_files(
+            dir.path().to_string_lossy().to_string(),
+            "target".to_string(),
+        )
+        .unwrap();
         assert_eq!(results.len(), 1);
         assert_eq!(results[0].name, "target.rs");
     }
@@ -226,8 +245,11 @@ mod tests {
         for i in 0..60 {
             fs::write(dir.path().join(format!("match{}.txt", i)), "").unwrap();
         }
-        let results =
-            search_files(dir.path().to_string_lossy().to_string(), "match".to_string()).unwrap();
+        let results = search_files(
+            dir.path().to_string_lossy().to_string(),
+            "match".to_string(),
+        )
+        .unwrap();
         // search_recursive hard-caps at 50.
         assert_eq!(results.len(), 50);
     }
@@ -239,5 +261,63 @@ mod tests {
         let results =
             search_files(dir.path().to_string_lossy().to_string(), "zzz".to_string()).unwrap();
         assert!(results.is_empty());
+    }
+
+    #[test]
+    fn search_files_prunes_generated_dirs_but_keeps_hidden_and_similar_dirs() {
+        let dir = tempdir().unwrap();
+        for generated in ["node_modules", "target", ".git", "DerivedData"] {
+            let generated_dir = dir.path().join(generated);
+            fs::create_dir(&generated_dir).unwrap();
+            fs::write(generated_dir.join("needle-generated.txt"), "").unwrap();
+        }
+        let hidden = dir.path().join(".ordinary-hidden");
+        let similar = dir.path().join("targeted");
+        fs::create_dir(&hidden).unwrap();
+        fs::create_dir(&similar).unwrap();
+        fs::write(hidden.join("needle-hidden.txt"), "").unwrap();
+        fs::write(similar.join("needle-similar.txt"), "").unwrap();
+
+        let mut names: Vec<String> = search_files(
+            dir.path().to_string_lossy().to_string(),
+            "needle".to_string(),
+        )
+        .unwrap()
+        .into_iter()
+        .map(|entry| entry.name)
+        .collect();
+        names.sort();
+
+        assert_eq!(names, vec!["needle-hidden.txt", "needle-similar.txt"]);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn search_files_does_not_recurse_directory_symlinks() {
+        use std::os::unix::fs::symlink;
+
+        let dir = tempdir().unwrap();
+        let external = tempdir().unwrap();
+        fs::write(external.path().join("needle-external.txt"), "").unwrap();
+        symlink(external.path(), dir.path().join("linked-directory")).unwrap();
+
+        let results = search_files(
+            dir.path().to_string_lossy().to_string(),
+            "needle".to_string(),
+        )
+        .unwrap();
+        assert!(results.is_empty());
+    }
+
+    #[test]
+    fn read_dir_still_lists_generated_directories() {
+        let dir = tempdir().unwrap();
+        fs::create_dir(dir.path().join("node_modules")).unwrap();
+        fs::create_dir(dir.path().join("target")).unwrap();
+
+        let entries = read_dir(dir.path().to_string_lossy().to_string()).unwrap();
+        let names: Vec<&str> = entries.iter().map(|entry| entry.name.as_str()).collect();
+        assert!(names.contains(&"node_modules"));
+        assert!(names.contains(&"target"));
     }
 }

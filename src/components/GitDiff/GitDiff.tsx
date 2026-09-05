@@ -1,8 +1,14 @@
-import { Component, createSignal, createEffect, onMount, onCleanup, Show, For } from "solid-js";
+import { Component, createSignal, createEffect, onCleanup, Show, For, untrack } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { html as diffHtml } from "diff2html";
 import { appStore } from "../../stores/app";
+import {
+  hasGitHistoryMetadataChange,
+  hasWorkingTreeChange,
+  payloadBelongsToRoot,
+  type FsChangedPayload,
+} from "../../fsEvents";
 import "./GitDiff.css";
 
 interface GitDiffFile {
@@ -41,58 +47,128 @@ const GitDiff: Component<{ commitHash: string }> = (props) => {
   const [selectedIdx, setSelectedIdx] = createSignal(0);
   const [branch, setBranch] = createSignal("");
 
-  async function loadBranch() {
-    const path = appStore.rootPath();
-    if (!path) return;
-    try {
-      const b = await invoke<string>("git_branch", { path });
-      setBranch(b);
-    } catch {}
-  }
+  createEffect(() => {
+    const root = appStore.rootPath();
+    const commitHash = props.commitHash;
+    const working = commitHash === "working";
+    let disposed = false;
+    let unlisten: (() => void) | undefined;
+    let debounceTimer: ReturnType<typeof setTimeout> | undefined;
+    let debounceStartedAt: number | undefined;
+    let debounceBranchRefresh = false;
+    let inFlight = false;
+    let queued = false;
+    let queuedBranchRefresh = false;
 
-  async function loadDiff() {
-    const path = appStore.rootPath();
-    if (!path) return;
-    const hash = props.commitHash === "working" ? undefined : props.commitHash;
-    const result = await invoke<GitDiffResult>("git_diff", { path, commitHash: hash });
-    setDiffResult(result);
-  }
+    setDiffResult(null);
+    setBranch("");
+    if (!root) return;
 
-  onMount(() => {
-    loadDiff();
-    if (props.commitHash === "working") {
-      loadBranch();
-      listen("fs-changed", loadDiff).then((fn) => unlisten = fn);
+    const load = async (refreshBranch: boolean) => {
+      if (inFlight) {
+        queued = true;
+        queuedBranchRefresh ||= refreshBranch;
+        return;
+      }
+      inFlight = true;
+      try {
+        const diffPromise = invoke<GitDiffResult>("git_diff", {
+          path: root,
+          commitHash: working ? undefined : commitHash,
+        });
+        const branchPromise = working && refreshBranch
+          ? invoke<string>("git_branch", { path: root })
+          : Promise.resolve<string | null>(null);
+        const [result, currentBranch] = await Promise.all([diffPromise, branchPromise]);
+        if (disposed || appStore.rootPath() !== root || props.commitHash !== commitHash) return;
+        const selectedPath = untrack(() => diffResult()?.files[selectedIdx()]?.path);
+        const nextIndex = selectedPath
+          ? result.files.findIndex((file) => file.path === selectedPath)
+          : -1;
+        setSelectedIdx(nextIndex >= 0 ? nextIndex : 0);
+        setDiffResult(result);
+        if (currentBranch !== null) setBranch(currentBranch);
+      } catch {
+      } finally {
+        inFlight = false;
+        if (queued && !disposed) {
+          const refreshQueuedBranch = queuedBranchRefresh;
+          queued = false;
+          queuedBranchRefresh = false;
+          void load(refreshQueuedBranch);
+        }
+      }
+    };
+
+    if (working) {
+      void listen<FsChangedPayload>("fs-changed", (event) => {
+        if (
+          disposed
+          || !payloadBelongsToRoot(event.payload, root)
+          || !hasWorkingTreeChange(event.payload, root)
+        ) return;
+        debounceBranchRefresh ||= hasGitHistoryMetadataChange(event.payload, root);
+        const now = Date.now();
+        debounceStartedAt ??= now;
+        if (debounceTimer) clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+          const refreshBranch = debounceBranchRefresh;
+          debounceTimer = undefined;
+          debounceStartedAt = undefined;
+          debounceBranchRefresh = false;
+          void load(refreshBranch);
+        }, Math.min(250, Math.max(0, 1000 - (now - debounceStartedAt))));
+      }).then((stop) => {
+        if (disposed) stop();
+        else unlisten = stop;
+      }).catch(() => {});
     }
-  });
 
-  let unlisten: (() => void) | undefined;
-  onCleanup(() => unlisten?.());
+    void load(working);
+
+    onCleanup(() => {
+      disposed = true;
+      queued = false;
+      if (debounceTimer) clearTimeout(debounceTimer);
+      unlisten?.();
+    });
+  });
 
   createEffect(() => {
     const result = diffResult();
     const idx = selectedIdx();
     const mode = viewMode();
+    const root = appStore.rootPath();
+    let disposed = false;
+    onCleanup(() => {
+      disposed = true;
+    });
+
     if (!result || result.files.length === 0) {
       setRenderedHtml("");
       return;
     }
     const file = result.files[idx];
     if (!file?.patch) {
-      if (file?.status === "untracked") {
-        invoke<string>("read_file", { path: `${appStore.rootPath()}/${file.path}` })
+      if (file?.status === "untracked" && root) {
+        invoke<string>("read_file", { path: `${root}/${file.path}` })
           .then((content) => {
+            if (disposed || appStore.rootPath() !== root) return;
             const lines = content.split("\n");
-            const numbered = lines.map((l, i) => `+${l}`).join("\n");
+            const numbered = lines.map((line) => `+${line}`).join("\n");
             const fakePatch = `--- /dev/null\n+++ b/${file.path}\n@@ -0,0 +1,${lines.length} @@\n${numbered}`;
-            const h = diffHtml(fakePatch, {
+            const html = diffHtml(fakePatch, {
               drawFileList: false,
               matching: "lines",
               outputFormat: mode === "unified" ? "line-by-line" : "side-by-side",
             });
-            setRenderedHtml(h);
+            if (!disposed && appStore.rootPath() === root) setRenderedHtml(html);
           })
-          .catch(() => setRenderedHtml("<div class='diff-empty'>Unable to read file</div>"));
+          .catch(() => {
+            if (!disposed && appStore.rootPath() === root) {
+              setRenderedHtml("<div class='diff-empty'>Unable to read file</div>");
+            }
+          });
         return;
       }
       setRenderedHtml("<div class='diff-empty'>No changes</div>");

@@ -1,7 +1,14 @@
-import { Component, createSignal, createEffect, createMemo, For, Show, onCleanup } from "solid-js";
+import { Component, createSignal, createEffect, createMemo, For, Show, onCleanup, untrack } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { appStore, getRecentProjects, matchRecentProject, RecentProject } from "../../stores/app";
+import {
+  isDirectoryListingAffected,
+  isPathWithinRoot,
+  normalizeFsPath,
+  payloadBelongsToRoot,
+  type FsChangedPayload,
+} from "../../fsEvents";
 import { getFileIcon } from "./FileIcons";
 import "./Sidebar.css";
 
@@ -30,12 +37,33 @@ const EXT_COLOR_MAP: Record<string, string> = {
   webp: "file-image", bmp: "file-image", ico: "file-image",
 };
 
-function entriesEqual(a: FileEntry[], b: FileEntry[]): boolean {
-  if (a.length !== b.length) return false;
-  for (let i = 0; i < a.length; i++) {
-    if (a[i].name !== b[i].name || a[i].path !== b[i].path || a[i].is_dir !== b[i].is_dir) return false;
-  }
-  return true;
+function reconcileEntries(current: FileEntry[], next: FileEntry[]): FileEntry[] {
+  const currentByPath = new Map(current.map((entry) => [entry.path, entry]));
+  return next.map((entry) => {
+    const existing = currentByPath.get(entry.path);
+    if (
+      existing
+      && existing.name === entry.name
+      && existing.is_dir === entry.is_dir
+      && existing.extension === entry.extension
+    ) {
+      return existing;
+    }
+    return entry;
+  });
+}
+
+function updateEntries(
+  setEntries: (updater: (current: FileEntry[]) => FileEntry[]) => void,
+  next: FileEntry[],
+): void {
+  setEntries((current) => {
+    const reconciled = reconcileEntries(current, next);
+    if (current.length === reconciled.length && current.every((entry, index) => entry === reconciled[index])) {
+      return current;
+    }
+    return reconciled;
+  });
 }
 
 function getFileColorClass(filename: string): string {
@@ -44,11 +72,22 @@ function getFileColorClass(filename: string): string {
   return EXT_COLOR_MAP[ext] || "";
 }
 
-const FileTreeItem: Component<{ entry: FileEntry; depth: number; refreshKey: number }> = (props) => {
+const FileTreeItem: Component<{
+  entry: FileEntry;
+  depth: number;
+  eventBatch: FsChangedPayload | undefined;
+}> = (props) => {
   const [expanded, setExpanded] = createSignal(false);
   const [children, setChildren] = createSignal<FileEntry[]>([]);
   const [loaded, setLoaded] = createSignal(false);
   const [copied, setCopied] = createSignal(false);
+  let disposed = false;
+  let loadGeneration = 0;
+
+  onCleanup(() => {
+    disposed = true;
+    loadGeneration++;
+  });
 
   function copyPath(e: MouseEvent) {
     e.stopPropagation();
@@ -57,15 +96,34 @@ const FileTreeItem: Component<{ entry: FileEntry; depth: number; refreshKey: num
     setTimeout(() => setCopied(false), 1500);
   }
 
-  createEffect(() => {
-    const _key = props.refreshKey;
-    if (loaded() && expanded() && props.entry.is_dir) {
-      invoke<FileEntry[]>("read_dir", { path: props.entry.path }).then((newChildren) => {
-        if (!entriesEqual(children(), newChildren)) {
-          setChildren(newChildren);
-        }
-      });
+  async function loadChildren(): Promise<boolean> {
+    const path = props.entry.path;
+    const generation = ++loadGeneration;
+    try {
+      const next = await invoke<FileEntry[]>("read_dir", { path });
+      if (disposed || generation !== loadGeneration || props.entry.path !== path) return false;
+      updateEntries(setChildren, next);
+      setLoaded(true);
+      return true;
+    } catch {
+      if (!disposed && generation === loadGeneration && props.entry.path === path) {
+        setChildren([]);
+        setLoaded(false);
+      }
+      return false;
     }
+  }
+
+  createEffect(() => {
+    const event = props.eventBatch;
+    if (!event) return;
+    const shouldReload = untrack(() => (
+      loaded()
+      && expanded()
+      && props.entry.is_dir
+      && isDirectoryListingAffected(props.entry.path, event)
+    ));
+    if (shouldReload) void loadChildren();
   });
 
   async function toggle() {
@@ -80,12 +138,12 @@ const FileTreeItem: Component<{ entry: FileEntry; depth: number; refreshKey: num
       return;
     }
 
-    if (!loaded()) {
-      const entries = await invoke<FileEntry[]>("read_dir", { path: props.entry.path });
-      setChildren(entries);
-      setLoaded(true);
+    if (expanded()) {
+      setExpanded(false);
+      return;
     }
-    setExpanded(!expanded());
+    if (!loaded() && !await loadChildren()) return;
+    setExpanded(true);
   }
 
   return (
@@ -115,7 +173,13 @@ const FileTreeItem: Component<{ entry: FileEntry; depth: number; refreshKey: num
       </div>
       <Show when={expanded()}>
         <For each={children()}>
-          {(child) => <FileTreeItem entry={child} depth={props.depth + 1} refreshKey={props.refreshKey} />}
+          {(child) => (
+            <FileTreeItem
+              entry={child}
+              depth={props.depth + 1}
+              eventBatch={props.eventBatch}
+            />
+          )}
         </For>
       </Show>
     </div>
@@ -123,11 +187,10 @@ const FileTreeItem: Component<{ entry: FileEntry; depth: number; refreshKey: num
 };
 
 function relativePath(fullPath: string, root: string): string {
-  if (fullPath.startsWith(root)) {
-    const rel = fullPath.slice(root.length);
-    return rel.startsWith("/") ? rel.slice(1) : rel;
-  }
-  return fullPath;
+  if (!root || !isPathWithinRoot(fullPath, root)) return fullPath;
+  const normalizedRoot = normalizeFsPath(root);
+  const relative = normalizeFsPath(fullPath).slice(normalizedRoot === "/" ? 1 : normalizedRoot.length);
+  return relative.startsWith("/") ? relative.slice(1) : relative;
 }
 
 function projectName(path: string | null): string {
@@ -147,12 +210,14 @@ const Sidebar: Component<{
   const [searching, setSearching] = createSignal(false);
   const [dropdownOpen, setDropdownOpen] = createSignal(false);
   const [projectQuery, setProjectQuery] = createSignal("");
-  const [refreshKey, setRefreshKey] = createSignal(0);
+  const [eventBatch, setEventBatch] = createSignal<FsChangedPayload>();
   let debounceTimer: ReturnType<typeof setTimeout> | undefined;
+  let searchGeneration = 0;
   let dropdownRef: HTMLDivElement | undefined;
   let projectSearchRef: HTMLInputElement | undefined;
 
   onCleanup(() => {
+    searchGeneration++;
     if (debounceTimer) clearTimeout(debounceTimer);
   });
 
@@ -179,33 +244,41 @@ const Sidebar: Component<{
   createEffect(() => {
     const path = appStore.rootPath();
     let disposed = false;
-    let loadRequestId = 0;
+    let loadGeneration = 0;
     let unlistenFs: UnlistenFn | undefined;
 
+    searchGeneration++;
+    if (debounceTimer) clearTimeout(debounceTimer);
+    setSearchQuery("");
+    setSearchResults([]);
+    setSearching(false);
+    setEventBatch(undefined);
     setEntries([]);
     if (!path) return;
 
     const loadEntries = async () => {
-      const requestId = ++loadRequestId;
+      const generation = ++loadGeneration;
       try {
-        const newEntries = await invoke<FileEntry[]>("read_dir", { path });
-        if (disposed || requestId !== loadRequestId) return;
-        if (!entriesEqual(entries(), newEntries)) {
-          setEntries(newEntries);
-        }
+        const next = await invoke<FileEntry[]>("read_dir", { path });
+        if (disposed || generation !== loadGeneration || appStore.rootPath() !== path) return;
+        updateEntries(setEntries, next);
       } catch {
-        if (!disposed && requestId === loadRequestId) {
+        if (!disposed && generation === loadGeneration && appStore.rootPath() === path) {
           setEntries([]);
         }
       }
     };
 
-    const setupWatcher = async () => {
+    void loadEntries();
+
+    void (async () => {
       try {
-        const unlisten = await listen<string>("fs-changed", () => {
-          if (disposed) return;
-          setRefreshKey((k) => k + 1);
-          void loadEntries();
+        const unlisten = await listen<FsChangedPayload>("fs-changed", (event) => {
+          if (disposed || !payloadBelongsToRoot(event.payload, path)) return;
+          setEventBatch(event.payload);
+          if (isDirectoryListingAffected(path, event.payload)) {
+            void loadEntries();
+          }
         });
         if (disposed) {
           unlisten();
@@ -213,30 +286,26 @@ const Sidebar: Component<{
         }
         unlistenFs = unlisten;
         await invoke("watch_path", { path });
-        if (!disposed) {
-          await loadEntries();
+        if (!disposed && appStore.rootPath() === path) {
+          void loadEntries();
         }
-      } catch {
-        if (!disposed) {
-          setEntries([]);
-        }
-      }
-    };
-
-    void setupWatcher();
+      } catch {}
+    })();
 
     onCleanup(() => {
       disposed = true;
-      loadRequestId++;
+      loadGeneration++;
       unlistenFs?.();
     });
   });
 
   function onSearchInput(value: string) {
+    const query = value.trim();
+    const generation = ++searchGeneration;
     setSearchQuery(value);
     if (debounceTimer) clearTimeout(debounceTimer);
 
-    if (!value.trim()) {
+    if (!query) {
       setSearchResults([]);
       setSearching(false);
       return;
@@ -245,17 +314,27 @@ const Sidebar: Component<{
     setSearching(true);
     debounceTimer = setTimeout(async () => {
       const root = appStore.rootPath();
-      if (!root) return;
+      if (!root) {
+        if (generation === searchGeneration) setSearching(false);
+        return;
+      }
       try {
-        const results = await invoke<FileEntry[]>("search_files", {
-          root,
-          query: value.trim(),
-        });
+        const results = await invoke<FileEntry[]>("search_files", { root, query });
+        if (
+          generation !== searchGeneration
+          || appStore.rootPath() !== root
+          || searchQuery().trim() !== query
+        ) return;
         setSearchResults(results);
       } catch {
+        if (
+          generation !== searchGeneration
+          || appStore.rootPath() !== root
+          || searchQuery().trim() !== query
+        ) return;
         setSearchResults([]);
       }
-      setSearching(false);
+      if (generation === searchGeneration) setSearching(false);
     }, 150);
   }
 
@@ -426,7 +505,7 @@ const Sidebar: Component<{
       <div class="sidebar-tree">
         <Show when={isSearching()} fallback={
           <For each={entries()}>
-            {(entry) => <FileTreeItem entry={entry} depth={0} refreshKey={refreshKey()} />}
+            {(entry) => <FileTreeItem entry={entry} depth={0} eventBatch={eventBatch()} />}
           </For>
         }>
           <Show when={searching()}>

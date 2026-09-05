@@ -1,7 +1,12 @@
-import { Component, createSignal, createMemo, For, Show, onMount, onCleanup } from "solid-js";
+import { Component, createSignal, createMemo, createEffect, For, Show, onCleanup, untrack } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { appStore } from "../../stores/app";
+import {
+  hasGitHistoryMetadataChange,
+  payloadBelongsToRoot,
+  type FsChangedPayload,
+} from "../../fsEvents";
 import { buildGraph } from "./graph";
 import "./GitLog.css";
 
@@ -31,8 +36,8 @@ const GitLog: Component = () => {
   const [filter, setFilter] = createSignal("");
   const graphRows = createMemo(() => buildGraph(commits()));
   let offset = 0;
-
-  let unlisten: (() => void) | undefined;
+  let loadMoreForRoot: (() => Promise<void>) | undefined;
+  let reloadBranchForRoot: ((name: string) => Promise<void>) | undefined;
 
   const visibleIndices = createMemo(() => {
     const q = filter().trim().toLowerCase();
@@ -55,74 +60,163 @@ const GitLog: Component = () => {
     return out;
   });
 
-  async function loadBranches() {
-    const path = appStore.rootPath();
-    if (!path) return;
-    try {
-      const [list, current] = await Promise.all([
-        invoke<string[]>("git_branches", { path }),
-        invoke<string>("git_branch", { path }),
-      ]);
-      setBranches(list);
-      setBranch(list.includes(current) ? current : list[0] ?? "");
-    } catch {
-      setBranches([]);
-    }
-  }
+  createEffect(() => {
+    const root = appStore.rootPath();
+    let disposed = false;
+    let unlisten: (() => void) | undefined;
+    let debounceTimer: ReturnType<typeof setTimeout> | undefined;
+    let debounceStartedAt: number | undefined;
+    let refreshInFlight = false;
+    let refreshQueued = false;
+    let requestGeneration = 0;
 
-  async function reload() {
-    const path = appStore.rootPath();
-    if (!path) return;
     offset = 0;
     setCommits([]);
+    setBranches([]);
+    setBranch("");
     setHasMore(true);
-    setLoading(true);
-    const batch = await invoke<GitCommit[]>("git_log", {
-      path,
-      offset,
-      limit: 50,
-      branch: branch() || null,
-    });
-    setCommits(batch);
-    offset = batch.length;
-    setHasMore(batch.length === 50);
     setLoading(false);
-  }
+    if (!root) return;
 
-  onMount(async () => {
-    await loadBranches();
-    await reload();
-    listen("fs-changed", async () => {
-      await loadBranches();
-      await reload();
-    }).then((fn) => (unlisten = fn));
+    const isCurrent = (generation: number) => (
+      !disposed
+      && generation === requestGeneration
+      && appStore.rootPath() === root
+    );
+
+    const refresh = async () => {
+      if (refreshInFlight) {
+        refreshQueued = true;
+        return;
+      }
+      refreshInFlight = true;
+      const generation = ++requestGeneration;
+      const preferredBranch = untrack(branch);
+      setLoading(true);
+      try {
+        const [list, currentBranch] = await Promise.all([
+          invoke<string[]>("git_branches", { path: root }),
+          invoke<string>("git_branch", { path: root }),
+        ]);
+        if (!isCurrent(generation)) return;
+        const nextBranch = list.includes(preferredBranch)
+          ? preferredBranch
+          : list.includes(currentBranch)
+            ? currentBranch
+            : list[0] ?? "";
+        const batch = await invoke<GitCommit[]>("git_log", {
+          path: root,
+          offset: 0,
+          limit: 50,
+          branch: nextBranch || null,
+        });
+        if (!isCurrent(generation)) return;
+        setBranches(list);
+        setBranch(nextBranch);
+        setCommits(batch);
+        offset = batch.length;
+        setHasMore(batch.length === 50);
+      } catch {
+      } finally {
+        if (isCurrent(generation)) setLoading(false);
+        refreshInFlight = false;
+        if (refreshQueued && !disposed) {
+          refreshQueued = false;
+          void refresh();
+        }
+      }
+    };
+
+    const reloadBranch = async (name: string) => {
+      const generation = ++requestGeneration;
+      offset = 0;
+      setCommits([]);
+      setHasMore(true);
+      setLoading(true);
+      try {
+        const batch = await invoke<GitCommit[]>("git_log", {
+          path: root,
+          offset: 0,
+          limit: 50,
+          branch: name || null,
+        });
+        if (!isCurrent(generation) || branch() !== name) return;
+        setCommits(batch);
+        offset = batch.length;
+        setHasMore(batch.length === 50);
+      } catch {
+      } finally {
+        if (isCurrent(generation)) setLoading(false);
+      }
+    };
+
+    const loadMore = async () => {
+      if (loading() || !hasMore()) return;
+      const selectedBranch = branch();
+      const startOffset = offset;
+      const generation = ++requestGeneration;
+      setLoading(true);
+      try {
+        const batch = await invoke<GitCommit[]>("git_log", {
+          path: root,
+          offset: startOffset,
+          limit: 50,
+          branch: selectedBranch || null,
+        });
+        if (!isCurrent(generation) || branch() !== selectedBranch || offset !== startOffset) return;
+        setCommits((current) => [...current, ...batch]);
+        offset += batch.length;
+        setHasMore(batch.length === 50);
+      } catch {
+      } finally {
+        if (isCurrent(generation)) setLoading(false);
+      }
+    };
+
+    loadMoreForRoot = loadMore;
+    reloadBranchForRoot = reloadBranch;
+
+    void listen<FsChangedPayload>("fs-changed", (event) => {
+      if (
+        disposed
+        || !payloadBelongsToRoot(event.payload, root)
+        || !hasGitHistoryMetadataChange(event.payload, root)
+      ) return;
+      const now = Date.now();
+      debounceStartedAt ??= now;
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        debounceTimer = undefined;
+        debounceStartedAt = undefined;
+        void refresh();
+      }, Math.min(250, Math.max(0, 1000 - (now - debounceStartedAt))));
+    }).then((stop) => {
+      if (disposed) stop();
+      else unlisten = stop;
+    }).catch(() => {});
+
+    void refresh();
+
+    onCleanup(() => {
+      disposed = true;
+      requestGeneration++;
+      refreshQueued = false;
+      if (debounceTimer) clearTimeout(debounceTimer);
+      unlisten?.();
+      if (loadMoreForRoot === loadMore) loadMoreForRoot = undefined;
+      if (reloadBranchForRoot === reloadBranch) reloadBranchForRoot = undefined;
+    });
   });
 
-  onCleanup(() => unlisten?.());
-
   async function loadMore() {
-    const path = appStore.rootPath();
-    if (!path || loading() || !hasMore()) return;
-    setLoading(true);
-    const batch = await invoke<GitCommit[]>("git_log", {
-      path,
-      offset,
-      limit: 50,
-      branch: branch() || null,
-    });
-    setCommits((prev) => [...prev, ...batch]);
-    offset += batch.length;
-    setHasMore(batch.length === 50);
-    setLoading(false);
+    await loadMoreForRoot?.();
   }
 
   async function onBranchChange(e: Event) {
     const name = (e.target as HTMLSelectElement).value;
     setBranch(name);
-    // Reload the graph scoped to the selected branch's reachable history, so the
-    // view matches the web git graph (one branch at a time, not every ref).
     setSelectedHash(null);
-    await reload();
+    await reloadBranchForRoot?.(name);
   }
 
   function laneX(lane: number): number {

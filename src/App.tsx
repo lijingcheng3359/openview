@@ -13,6 +13,11 @@ import SqliteViewer from "./components/SqliteViewer/SqliteViewer";
 import CodeViewer from "./components/CodeViewer/CodeViewer";
 import HtmlViewer from "./components/HtmlViewer/HtmlViewer";
 import { appStore, addRecentProject, getRecentProjects } from "./stores/app";
+import {
+  isActiveFileAffected,
+  payloadBelongsToRoot,
+  type FsChangedPayload,
+} from "./fsEvents";
 import "diff2html/bundles/css/diff2html.min.css";
 
 const SKIP_RELOAD_MODES = new Set(["git-log", "git-diff", "image", "sqlite"]);
@@ -20,27 +25,55 @@ const SKIP_RELOAD_MODES = new Set(["git-log", "git-diff", "image", "sqlite"]);
 const App: Component = () => {
   let unlistenFs: (() => void) | undefined;
   let unlistenFollow: (() => void) | undefined;
+  let disposed = false;
+  let fileReloadGeneration = 0;
+  let projectSwitchGeneration = 0;
 
-  onMount(async () => {
-    unlistenFs = await listen("fs-changed", async () => {
+  onMount(() => {
+    void listen<FsChangedPayload>("fs-changed", async (event) => {
+      const root = appStore.rootPath();
       const active = appStore.activeTab();
-      if (!active || SKIP_RELOAD_MODES.has(active.mode)) return;
+      if (
+        !root
+        || !payloadBelongsToRoot(event.payload, root)
+        || !active
+        || SKIP_RELOAD_MODES.has(active.mode)
+        || !isActiveFileAffected(active.path, event.payload)
+      ) return;
+
+      const generation = ++fileReloadGeneration;
+      const activeId = active.id;
+      const activePath = active.path;
       try {
-        const content = await invoke<string>("read_file", { path: active.path });
-        if (content !== active.content) {
-          appStore.updateTabContent(active.id, content);
+        const content = await invoke<string>("read_file", { path: activePath });
+        const current = appStore.activeTab();
+        if (
+          disposed
+          || generation !== fileReloadGeneration
+          || appStore.rootPath() !== root
+          || current?.id !== activeId
+          || current.path !== activePath
+        ) return;
+        if (content !== current.content) {
+          appStore.updateTabContent(activeId, content);
         }
       } catch {}
-    });
+    }).then((unlisten) => {
+      if (disposed) unlisten();
+      else unlistenFs = unlisten;
+    }).catch(() => {});
 
     invoke("watch_terminal_project").catch(() => {});
-    unlistenFollow = await listen<string>("terminal-project-changed", (event) => {
+    void listen<string>("terminal-project-changed", (event) => {
       if (!appStore.followTerminal()) return;
       const path = event.payload;
       if (path && path !== appStore.rootPath()) {
         switchToProject(path);
       }
-    });
+    }).then((unlisten) => {
+      if (disposed) unlisten();
+      else unlistenFollow = unlisten;
+    }).catch(() => {});
   });
 
   // When follow is turned on, jump to the terminal's current project right away.
@@ -56,6 +89,9 @@ const App: Component = () => {
   });
 
   onCleanup(() => {
+    disposed = true;
+    fileReloadGeneration++;
+    projectSwitchGeneration++;
     unlistenFs?.();
     unlistenFollow?.();
   });
@@ -68,19 +104,28 @@ const App: Component = () => {
   }
 
   async function switchToProject(path: string) {
+    const generation = ++projectSwitchGeneration;
     appStore.setRootPath(path);
     appStore.setTabs([]);
     appStore.setActiveTabId(null);
+    appStore.setIsGitRepo(false);
     addRecentProject(path);
-    const isGit = await invoke<boolean>("git_detect", { path });
-    appStore.setIsGitRepo(isGit);
-    if (isGit) {
-      const id = "git-diff-working";
-      appStore.setTabs([
-        { id, name: "Working Changes", path: "git://working", mode: "git-diff", content: "working" },
-      ]);
-      appStore.setActiveTabId(id);
-    }
+    try {
+      const isGit = await invoke<boolean>("git_detect", { path });
+      if (
+        disposed
+        || generation !== projectSwitchGeneration
+        || appStore.rootPath() !== path
+      ) return;
+      appStore.setIsGitRepo(isGit);
+      if (isGit) {
+        const id = "git-diff-working";
+        appStore.setTabs([
+          { id, name: "Working Changes", path: "git://working", mode: "git-diff", content: "working" },
+        ]);
+        appStore.setActiveTabId(id);
+      }
+    } catch {}
   }
 
   function openGitLog() {
