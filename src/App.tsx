@@ -1,4 +1,4 @@
-import { Component, Show, Switch, Match, For, onMount, onCleanup, createEffect, lazy } from "solid-js";
+import { Component, Show, Switch, Match, For, onMount, onCleanup, createEffect, createSignal, lazy } from "solid-js";
 import { invoke, convertFileSrc } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-dialog";
@@ -18,6 +18,7 @@ import {
   payloadBelongsToRoot,
   type FsChangedPayload,
 } from "./fsEvents";
+import { withAssetRevision } from "./imagePreview";
 import "diff2html/bundles/css/diff2html.min.css";
 
 const DrawioViewer = lazy(() => import("./components/DrawioViewer/DrawioViewer"));
@@ -30,6 +31,7 @@ const App: Component = () => {
   let disposed = false;
   let fileReloadGeneration = 0;
   let projectSwitchGeneration = 0;
+  const [imageRevision, setImageRevision] = createSignal(0);
 
   onMount(() => {
     void listen<FsChangedPayload>("fs-changed", async (event) => {
@@ -39,9 +41,14 @@ const App: Component = () => {
         !root
         || !payloadBelongsToRoot(event.payload, root)
         || !active
-        || SKIP_RELOAD_MODES.has(active.mode)
         || !isActiveFileAffected(active.path, event.payload)
       ) return;
+
+      if (active.mode === "image") {
+        setImageRevision((revision) => revision + 1);
+        return;
+      }
+      if (SKIP_RELOAD_MODES.has(active.mode)) return;
 
       const generation = ++fileReloadGeneration;
       const activeId = active.id;
@@ -227,7 +234,13 @@ const App: Component = () => {
                 </Match>
                 <Match when={tab()?.mode === "image"}>
                   <div class="image-viewer">
-                    <img src={convertFileSrc(tab()!.path)} alt={tab()!.name} />
+                    <img
+                      src={withAssetRevision(
+                        convertFileSrc(tab()!.path),
+                        `${tab()!.id}-${imageRevision()}`,
+                      )}
+                      alt={tab()!.name}
+                    />
                   </div>
                 </Match>
                 <Match when={tab()?.mode === "sqlite"}>

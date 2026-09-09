@@ -84,6 +84,15 @@ describe("tabs", () => {
     expect(appStore.tabs()).toHaveLength(1);
   });
 
+  it("assigns a new tab id when reopening the same path", () => {
+    appStore.openFile("/x/image.svg", "image.svg", "");
+    const firstId = appStore.activeTabId();
+
+    appStore.openFile("/x/image.svg", "image.svg", "");
+
+    expect(appStore.activeTabId()).not.toBe(firstId);
+  });
+
   it("updateTabContent mutates only the matching tab", () => {
     appStore.openFile("/x/a.md", "a.md", "old");
     const id = appStore.activeTabId()!;
