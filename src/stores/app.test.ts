@@ -31,6 +31,11 @@ describe("detectMode", () => {
     expect(detectMode("page.htm")).toBe("html");
   });
 
+  it("maps drawio extensions to drawio preview", () => {
+    expect(detectMode("diagram.drawio")).toBe("drawio");
+    expect(detectMode("DIAGRAM.DRAWIO")).toBe("drawio");
+  });
+
   it("maps a wide range of source files to code", () => {
     for (const f of ["a.ts", "a.tsx", "a.py", "a.rs", "a.go", "a.java", "a.sql", "a.yaml", "a.sh"]) {
       expect(detectMode(f)).toBe("code");

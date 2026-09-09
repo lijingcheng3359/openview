@@ -1,4 +1,4 @@
-import { Component, Show, Switch, Match, For, onMount, onCleanup, createEffect } from "solid-js";
+import { Component, Show, Switch, Match, For, onMount, onCleanup, createEffect, lazy } from "solid-js";
 import { invoke, convertFileSrc } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-dialog";
@@ -19,6 +19,8 @@ import {
   type FsChangedPayload,
 } from "./fsEvents";
 import "diff2html/bundles/css/diff2html.min.css";
+
+const DrawioViewer = lazy(() => import("./components/DrawioViewer/DrawioViewer"));
 
 const SKIP_RELOAD_MODES = new Set(["git-log", "git-diff", "image", "sqlite"]);
 
@@ -210,6 +212,9 @@ const App: Component = () => {
                 </Match>
                 <Match when={tab()?.mode === "mermaid"}>
                   <MermaidViewer content={tab()!.content ?? ""} tabId={tab()!.id} />
+                </Match>
+                <Match when={tab()?.mode === "drawio"}>
+                  <DrawioViewer content={tab()!.content ?? ""} />
                 </Match>
                 <Match when={tab()?.mode === "json"}>
                   <JsonViewer content={tab()!.content ?? ""} />

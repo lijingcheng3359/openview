@@ -121,6 +121,7 @@ const EXT_ICON_MAP: Record<string, () => JSX.Element> = {
   py: DocPython,
   sh: DocShell, bash: DocShell, zsh: DocShell, fish: DocShell,
   csv: DocData, tsv: DocData, sql: DocData, sqlite: DocData, db: DocData,
+  drawio: DocImage,
   png: DocImage, jpg: DocImage, jpeg: DocImage, gif: DocImage,
   webp: DocImage, bmp: DocImage, ico: DocImage,
 };

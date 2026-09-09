@@ -1,7 +1,7 @@
 import { createSignal, createRoot } from "solid-js";
 import { pinyin } from "pinyin-pro";
 
-export type ViewMode = "markdown" | "csv" | "mermaid" | "json" | "image" | "sqlite" | "code" | "html" | "plaintext" | "git-log" | "git-diff";
+export type ViewMode = "markdown" | "csv" | "mermaid" | "drawio" | "json" | "image" | "sqlite" | "code" | "html" | "plaintext" | "git-log" | "git-diff";
 
 export interface RecentProject {
   path: string;
@@ -89,6 +89,8 @@ function createAppStore() {
       case "mmd":
       case "mermaid":
         return "mermaid";
+      case "drawio":
+        return "drawio";
       case "json":
       case "jsonl":
       case "ndjson":
