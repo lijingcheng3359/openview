@@ -42,6 +42,16 @@ export function isActiveFileAffected(
   return payload.rescan || payload.paths.includes(activePath);
 }
 
+export function isReferencedPathAffected(
+  referencedPaths: readonly string[],
+  payload: FsChangedPayload,
+): boolean {
+  if (referencedPaths.length === 0) return false;
+  if (payload.rescan) return true;
+  const normalizedReferences = new Set(referencedPaths.map(normalizeFsPath));
+  return payload.paths.some((path) => normalizedReferences.has(normalizeFsPath(path)));
+}
+
 export function isPathWithinRoot(path: string, root: string): boolean {
   const normalizedPath = normalizeFsPath(path);
   const normalizedRoot = normalizeFsPath(root);

@@ -15,6 +15,7 @@ import HtmlViewer from "./components/HtmlViewer/HtmlViewer";
 import { appStore, addRecentProject, getRecentProjects } from "./stores/app";
 import {
   isActiveFileAffected,
+  isReferencedPathAffected,
   payloadBelongsToRoot,
   type FsChangedPayload,
 } from "./fsEvents";
@@ -31,7 +32,11 @@ const App: Component = () => {
   let disposed = false;
   let fileReloadGeneration = 0;
   let projectSwitchGeneration = 0;
-  const [imageRevision, setImageRevision] = createSignal(0);
+  const [assetRevision, setAssetRevision] = createSignal(0);
+  const [markdownImageDependencies, setMarkdownImageDependencies] = createSignal<{
+    tabId: string;
+    paths: string[];
+  } | null>(null);
 
   onMount(() => {
     void listen<FsChangedPayload>("fs-changed", async (event) => {
@@ -41,14 +46,25 @@ const App: Component = () => {
         !root
         || !payloadBelongsToRoot(event.payload, root)
         || !active
-        || !isActiveFileAffected(active.path, event.payload)
       ) return;
 
+      const activeFileAffected = isActiveFileAffected(active.path, event.payload);
       if (active.mode === "image") {
-        setImageRevision((revision) => revision + 1);
+        if (activeFileAffected) setAssetRevision((revision) => revision + 1);
         return;
       }
-      if (SKIP_RELOAD_MODES.has(active.mode)) return;
+
+      if (active.mode === "markdown") {
+        const dependencies = markdownImageDependencies();
+        if (
+          dependencies?.tabId === active.id
+          && isReferencedPathAffected(dependencies.paths, event.payload)
+        ) {
+          setAssetRevision((revision) => revision + 1);
+        }
+      }
+
+      if (!activeFileAffected || SKIP_RELOAD_MODES.has(active.mode)) return;
 
       const generation = ++fileReloadGeneration;
       const activeId = active.id;
@@ -114,6 +130,7 @@ const App: Component = () => {
 
   async function switchToProject(path: string) {
     const generation = ++projectSwitchGeneration;
+    setMarkdownImageDependencies(null);
     appStore.setRootPath(path);
     appStore.setTabs([]);
     appStore.setActiveTabId(null);
@@ -158,6 +175,12 @@ const App: Component = () => {
       ]);
     }
     appStore.setActiveTabId(id);
+  }
+
+  function handleMarkdownImagePathsChange(tabId: string, paths: string[]) {
+    const active = appStore.activeTab();
+    if (active?.id !== tabId || active.mode !== "markdown") return;
+    setMarkdownImageDependencies({ tabId, paths });
   }
 
   const tab = () => appStore.activeTab();
@@ -212,7 +235,13 @@ const App: Component = () => {
             <div class="content-area">
               <Switch>
                 <Match when={tab()?.mode === "markdown"}>
-                  <MarkdownPreview content={tab()!.content ?? ""} tabId={tab()!.id} filePath={tab()!.path} />
+                  <MarkdownPreview
+                    content={tab()!.content ?? ""}
+                    tabId={tab()!.id}
+                    filePath={tab()!.path}
+                    assetRevision={`${tab()!.id}-${assetRevision()}`}
+                    onLocalImagePathsChange={handleMarkdownImagePathsChange}
+                  />
                 </Match>
                 <Match when={tab()?.mode === "csv"}>
                   <CsvViewer path={tab()!.path} />
@@ -237,7 +266,7 @@ const App: Component = () => {
                     <img
                       src={withAssetRevision(
                         convertFileSrc(tab()!.path),
-                        `${tab()!.id}-${imageRevision()}`,
+                        `${tab()!.id}-${assetRevision()}`,
                       )}
                       alt={tab()!.name}
                     />

@@ -1,19 +1,31 @@
-import { Component, createSignal, createEffect, onMount, onCleanup } from "solid-js";
+import { Component, createSignal, createEffect, createMemo, onMount, onCleanup } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
 import { EditorView, basicSetup } from "codemirror";
 import { markdown } from "@codemirror/lang-markdown";
 import { languages } from "@codemirror/language-data";
 import { EditorState } from "@codemirror/state";
 import { appStore } from "../../stores/app";
+import { prepareMarkdownImages } from "../../imagePreview";
 import "./MarkdownPreview.css";
 
-const MarkdownPreview: Component<{ content: string; tabId: string; filePath: string }> = (props) => {
+interface MarkdownPreviewProps {
+  content: string;
+  tabId: string;
+  filePath: string;
+  assetRevision: string;
+  onLocalImagePathsChange: (tabId: string, paths: string[]) => void;
+}
+
+const MarkdownPreview: Component<MarkdownPreviewProps> = (props) => {
   let editorRef: HTMLDivElement | undefined;
   let previewRef: HTMLDivElement | undefined;
   let view: EditorView | undefined;
   let debounceTimer: number | undefined;
+  let previewGeneration = 0;
+  let disposed = false;
 
-  const [html, setHtml] = createSignal("");
+  const [rawHtml, setRawHtml] = createSignal("");
+  const preparedHtml = createMemo(() => prepareMarkdownImages(rawHtml(), props.assetRevision));
 
   function getBaseDir(filePath: string): string {
     const lastSlash = filePath.lastIndexOf("/");
@@ -21,9 +33,11 @@ const MarkdownPreview: Component<{ content: string; tabId: string; filePath: str
   }
 
   async function updatePreview(content: string) {
+    const generation = ++previewGeneration;
     const basePath = getBaseDir(props.filePath);
     const result = await invoke<string>("parse_markdown", { content, basePath });
-    setHtml(result);
+    if (disposed || generation !== previewGeneration) return;
+    setRawHtml(result);
   }
 
   onMount(() => {
@@ -62,11 +76,17 @@ const MarkdownPreview: Component<{ content: string; tabId: string; filePath: str
     const current = view.state.doc.toString();
     if (newContent !== current) {
       view.dispatch({ changes: { from: 0, to: current.length, insert: newContent } });
-      updatePreview(newContent);
+      void updatePreview(newContent);
     }
   });
 
+  createEffect(() => {
+    props.onLocalImagePathsChange(props.tabId, preparedHtml().localImagePaths);
+  });
+
   onCleanup(() => {
+    disposed = true;
+    previewGeneration++;
     view?.destroy();
     clearTimeout(debounceTimer);
   });
@@ -95,7 +115,7 @@ const MarkdownPreview: Component<{ content: string; tabId: string; filePath: str
       onMouseLeave={() => setHoverSide(null)}
     >
       <div class="preview-pane" ref={previewRef}>
-        <div class="markdown-body" innerHTML={html()} />
+        <div class="markdown-body" innerHTML={preparedHtml().html} />
       </div>
       <div class="editor-pane" ref={editorRef} />
     </div>

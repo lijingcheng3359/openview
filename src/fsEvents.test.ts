@@ -5,6 +5,7 @@ import {
   isDirectoryListingAffected,
   isGitHistoryMetadataPath,
   isPathWithinRoot,
+  isReferencedPathAffected,
   parentFsPath,
   payloadBelongsToRoot,
   type FsChangedPayload,
@@ -60,6 +61,28 @@ describe("filesystem event paths", () => {
     const event = payload("/Users/me/project", [], true);
     expect(isDirectoryListingAffected("/Users/me/project/src", event)).toBe(true);
     expect(isActiveFileAffected("/Users/me/project/src/App.tsx", event)).toBe(true);
+  });
+
+  it("matches only changed paths referenced by the active document", () => {
+    const references = [
+      "/Users/me/project/assets/chart.png",
+      "/Users/me/project/assets/photo.jpg",
+    ];
+
+    expect(isReferencedPathAffected(references, payload("/Users/me/project", [
+      "/Users/me/project/notes.md",
+      "/Users/me/project/assets/chart.png",
+    ]))).toBe(true);
+    expect(isReferencedPathAffected(references, payload("/Users/me/project", [
+      "/Users/me/project/assets/other.png",
+    ]))).toBe(false);
+  });
+
+  it("refreshes referenced paths on rescan only when dependencies exist", () => {
+    const event = payload("/Users/me/project", [], true);
+
+    expect(isReferencedPathAffected(["/Users/me/project/assets/chart.png"], event)).toBe(true);
+    expect(isReferencedPathAffected([], event)).toBe(false);
   });
 });
 
